@@ -50,7 +50,7 @@ export class Main {
       }
     }
 
-    gameCanvas.addEventListener('resize', (e: UIEvent): void => { resize_canvas(); });
+    window.addEventListener('resize', (e: UIEvent): void => { resize_canvas(); });
     gameCanvas.addEventListener('orientationchange', (e: Event): void => { resize_canvas(); });
     resize_canvas();
 
