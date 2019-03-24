@@ -1,5 +1,5 @@
 import { Component, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
-import * as box2d from '@flyover/box2d';
+import { Main } from '@game/Main';
 
 @Component({
   selector: 'app-root',
@@ -14,5 +14,19 @@ export class AppComponent implements AfterViewInit {
   public ngAfterViewInit() {
     const canvasEl: HTMLCanvasElement = this.canvas.nativeElement;
     this.ctx = canvasEl.getContext('2d');
+
+    let game: Main;
+
+    const loop = (time: number) => {
+      window.requestAnimationFrame(loop);
+      game.SimulationLoop(time);
+    };
+
+    const init = (time: number) => {
+      game = new Main(time, canvasEl);
+      window.requestAnimationFrame(loop);
+    };
+
+    window.requestAnimationFrame(init);
   }
 }
