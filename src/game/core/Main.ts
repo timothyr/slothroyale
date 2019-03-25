@@ -2,14 +2,14 @@ import * as box2d from '@flyover/box2d';
 import { g_debugDraw, g_camera } from '@game/core/DebugDraw';
 import { MapBase, Settings } from '@game/core/MapBase';
 import { Map } from '@game/map/Map';
+import { Fps } from '@game/core/Fps';
 
 export class Main {
   public m_time_last = 0;
-  public m_fps_time = 0;
-  public m_fps_frames = 0;
-  public m_fps = 0;
-  public m_fps_div: HTMLDivElement;
+
   public m_debug_div: HTMLDivElement;
+
+  public fps: Fps;
 
   public map?: MapBase;
   public readonly m_settings: Settings = new Settings();
@@ -26,15 +26,7 @@ export class Main {
   public m_ctx: CanvasRenderingContext2D | null = null;
 
   constructor(time: number, gameCanvas: HTMLCanvasElement) {
-    const fps_div: HTMLDivElement = this.m_fps_div = document.body.appendChild(document.createElement('div'));
-    fps_div.style.position = 'absolute';
-    fps_div.style.right = '0px';
-    fps_div.style.top = '0px';
-    fps_div.style.backgroundColor = 'rgba(0,0,255,0.75)';
-    fps_div.style.color = 'white';
-    fps_div.style.font = '10pt Courier New';
-    fps_div.style.zIndex = '256';
-    fps_div.innerHTML = 'FPS';
+    this.fps = new Fps();
 
     document.body.style.backgroundColor = 'black';
 
@@ -86,16 +78,7 @@ export class Main {
 
     if (time_elapsed > 1000) { time_elapsed = 1000; } // clamp
 
-    this.m_fps_time += time_elapsed;
-    this.m_fps_frames++;
-
-    if (this.m_fps_time >= 500) {
-      this.m_fps = (this.m_fps_frames * 1000) / this.m_fps_time;
-      this.m_fps_frames = 0;
-      this.m_fps_time = 0;
-
-      this.m_fps_div.innerHTML = this.m_fps.toFixed(1).toString();
-    }
+    this.fps.Update(time_elapsed);
 
     if (time_elapsed > 0) {
       const ctx: CanvasRenderingContext2D | null = this.m_ctx;
