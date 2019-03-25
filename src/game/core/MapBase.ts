@@ -1,5 +1,5 @@
 import * as box2d from '@flyover/box2d';
-import { g_debugDraw } from '@game/DebugDraw';
+import { g_debugDraw } from '@game/core/DebugDraw';
 
 export class Settings {
   public hz = 60;
@@ -25,9 +25,9 @@ export class Settings {
 }
 
 export class DestructionListener extends box2d.b2DestructionListener {
-  public map: Map;
+  public map: MapBase;
 
-  constructor(map: Map) {
+  constructor(map: MapBase) {
     super();
 
     this.map = map;
@@ -58,7 +58,7 @@ export class ContactPoint {
   public separation = 0;
 }
 
-export class Map extends box2d.b2ContactListener {
+export class MapBase extends box2d.b2ContactListener {
 
   constructor() {
       super();
@@ -86,7 +86,7 @@ export class Map extends box2d.b2ContactListener {
   public m_stepCount = 0;
   public m_destructionListener: DestructionListener;
   public m_groundBody: box2d.b2Body;
-  public readonly m_points: ContactPoint[] = box2d.b2MakeArray(Map.k_maxContactPoints, (i) => new ContactPoint());
+  public readonly m_points: ContactPoint[] = box2d.b2MakeArray(MapBase.k_maxContactPoints, (i) => new ContactPoint());
   public m_pointCount = 0;
 
   // ---------- Step ------------

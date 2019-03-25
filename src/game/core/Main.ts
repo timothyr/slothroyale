@@ -1,7 +1,7 @@
 import * as box2d from '@flyover/box2d';
-import { g_debugDraw, g_camera } from '@game/DebugDraw';
-import { Map, Settings } from '@game/Map';
-import { Level } from '@game/Level';
+import { g_debugDraw, g_camera } from '@game/core/DebugDraw';
+import { MapBase, Settings } from '@game/core/MapBase';
+import { Map } from '@game/map/Map';
 
 export class Main {
   public m_time_last = 0;
@@ -11,7 +11,7 @@ export class Main {
   public m_fps_div: HTMLDivElement;
   public m_debug_div: HTMLDivElement;
 
-  public map?: Map;
+  public map?: MapBase;
   public readonly m_settings: Settings = new Settings();
 
   private m_mouse = new box2d.b2Vec2();
@@ -72,7 +72,7 @@ export class Main {
   }
 
   public LoadLevel(): void {
-    this.map = Level.Create();
+    this.map = Map.Create();
     this.HomeCamera();
   }
 

@@ -1,7 +1,7 @@
 import * as box2d from '@flyover/box2d';
-import { Map } from '@game/Map';
+import { MapBase } from '@game/core/MapBase';
 
-export class Level extends Map {
+export class Map extends MapBase {
 
   constructor() {
     super();
@@ -10,8 +10,8 @@ export class Level extends Map {
     this.CreateCircles(2);
   }
 
-  public static Create(): Map {
-    return new Level();
+  public static Create(): MapBase {
+    return new Map();
   }
 
   public CreateCircles(numCircles: number) {

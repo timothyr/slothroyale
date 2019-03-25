@@ -1,5 +1,5 @@
 import { Component, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
-import { Main } from '@game/Main';
+import { Main } from '@game/core/Main';
 
 @Component({
   selector: 'app-root',
