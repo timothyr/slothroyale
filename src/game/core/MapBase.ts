@@ -1,5 +1,6 @@
 import * as box2d from '@flyover/box2d';
 import { g_debugDraw } from '@game/core/DebugDraw';
+import { Input } from './Input';
 
 export class Settings {
   public hz = 60;
@@ -91,7 +92,7 @@ export class MapBase extends box2d.b2ContactListener {
 
   // ---------- Step ------------
 
-  public Step(settings: Settings): void {
+  public Step(settings: Settings, input: Input): void {
     const timeStep = settings.hz > 0 ? 1 / settings.hz : 0;
 
     let flags = box2d.b2DrawFlags.e_none;
@@ -106,7 +107,6 @@ export class MapBase extends box2d.b2ContactListener {
     this.m_world.SetWarmStarting(settings.enableWarmStarting);
     this.m_world.SetContinuousPhysics(settings.enableContinuous);
     this.m_world.SetSubStepping(settings.enableSubStepping);
-
 
     this.m_pointCount = 0;
 

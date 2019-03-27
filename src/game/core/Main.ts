@@ -3,6 +3,7 @@ import { g_debugDraw, g_camera } from '@game/core/DebugDraw';
 import { MapBase, Settings } from '@game/core/MapBase';
 import { Map } from '@game/map/Map';
 import { Fps } from '@game/core/Fps';
+import { Input, MoveX, MoveY } from './Input';
 
 export class Main {
   public m_time_last = 0;
@@ -24,6 +25,8 @@ export class Main {
   public m_canvas_div: HTMLDivElement;
   public m_canvas_2d: HTMLCanvasElement;
   public m_ctx: CanvasRenderingContext2D | null = null;
+
+  public m_input: Input = new Input();
 
   constructor(time: number, gameCanvas: HTMLCanvasElement) {
     this.fps = new Fps();
@@ -55,8 +58,8 @@ export class Main {
     gameCanvas.addEventListener('touchstart', (e: TouchEvent): void => { this.HandleTouchStart(e); });
     gameCanvas.addEventListener('touchend', (e: TouchEvent): void => { this.HandleTouchEnd(e); });
 
-    // window.addEventListener("keydown", (e: KeyboardEvent): void => { this.HandleKeyDown(e); });
-    // window.addEventListener("keyup", (e: KeyboardEvent): void => { this.HandleKeyUp(e); });
+    window.addEventListener('keydown', (e: KeyboardEvent): void => { this.HandleKey(e, true); });
+    window.addEventListener('keyup', (e: KeyboardEvent): void => { this.HandleKey(e, false); });
 
     this.LoadLevel();
 
@@ -111,7 +114,7 @@ export class Main {
 
         ctx.translate(-g_camera.m_center.x, -g_camera.m_center.y);
 
-        if (this.map) { this.map.Step(this.m_settings); }
+        if (this.map) { this.map.Step(this.m_settings, this.m_input); }
 
         ctx.restore();
       }
@@ -150,6 +153,46 @@ export class Main {
 
   // --------- Input -----------
 
+  public HandleKey(e: KeyboardEvent, isPressed: boolean): void {
+    switch (e.key) {
+      case 'Control':
+
+        break;
+      case 'Shift':
+
+        break;
+      case 'ArrowLeft':
+        if (isPressed) {
+          this.m_input.moveX = MoveX.LEFT;
+        } else {
+          this.m_input.moveX = MoveX.NONE;
+        }
+        break;
+      case 'ArrowRight':
+        if (isPressed) {
+          this.m_input.moveX = MoveX.RIGHT;
+        } else {
+          this.m_input.moveX = MoveX.NONE;
+        }
+        break;
+      case 'ArrowDown':
+        if (isPressed) {
+          this.m_input.moveY = MoveY.DOWN;
+        } else {
+          this.m_input.moveY = MoveY.NONE;
+        }
+        break;
+      case 'ArrowUp':
+        if (isPressed) {
+          this.m_input.moveY = MoveY.UP;
+        } else {
+          this.m_input.moveY = MoveY.NONE;
+        }
+        break;
+    }
+  }
+
+  // --------- Mouse -----------
 
   public HandleMouseMove(e: MouseEvent): void {
     const rect = this.m_canvas_2d.getBoundingClientRect();
