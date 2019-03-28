@@ -1,10 +1,21 @@
 import * as box2d from '@flyover/box2d';
 import { Input, MoveX } from '@game/core/Input';
 
+const PLAYER_MIN_ANGLE = -90 - 70;
+const PLAYER_MAX_ANGLE = -90 + 70;
+
+export interface PlayerMovement {
+  minAngle: number;
+  maxAngle: number;
+  velocity: number;
+  moveX: MoveX;
+}
+
 export class Player {
 
   body: box2d.b2Body;
   sensorFixture: box2d.b2Fixture;
+  playerMovement: PlayerMovement;
   stopped = true;
 
   constructor(m_world: box2d.b2World) {
@@ -21,48 +32,57 @@ export class Player {
     circle.m_p.Set(0, -1.5);
     circle.m_radius = 0.5;
 
+    this.playerMovement = {
+      minAngle: box2d.b2DegToRad(PLAYER_MIN_ANGLE),
+      maxAngle: box2d.b2DegToRad(PLAYER_MAX_ANGLE),
+      velocity: 0,
+      moveX: MoveX.NONE
+    }
+
     const playerSensorFixtureDef = new box2d.b2FixtureDef();
     playerSensorFixtureDef.shape = circle;
-    playerSensorFixtureDef.friction = 2;
+    playerSensorFixtureDef.friction = 10000000;
+    playerSensorFixtureDef.userData = this.playerMovement;
     this.sensorFixture = this.body.CreateFixture(playerSensorFixtureDef, 0);
 
     this.body.SetBullet(true);
     this.body.SetFixedRotation(true);
+    this.body.SetSleepingAllowed(true); // set only on players turn?
   }
 
   handleInput(input: Input) {
     const vel: box2d.b2Vec2 = this.body.GetLinearVelocity();
 
-    if(input.moveX === MoveX.NONE && !this.stopped) {
-      this.sensorFixture.SetFriction(10000000);
+    if(Math.abs(vel.x) < 1 && input.moveX === MoveX.NONE && !this.stopped) {
+      vel.x = 0;
+      this.body.SetLinearVelocity(vel);
+      this.body.SetSleepingAllowed(true);
+      // this.body.SetAwake(false);
       this.stopped = true;
     }
 
     if (vel.x || input.moveX !== MoveX.NONE) {
       if(this.stopped) {
-        this.sensorFixture.SetFriction(2);
+        this.body.SetSleepingAllowed(false);
         this.stopped = false;
       }
 
-      let desiredX = 0;
+      let velocity = 0;
 
       switch (input.moveX) {
         case MoveX.LEFT:
-          // move left
-          desiredX = -2;
+          velocity = -2;
           break;
         case MoveX.RIGHT:
-          // move right
-          desiredX = 2;
-          break;
-        case MoveX.NONE:
+          velocity = 2;
           break;
       }
 
-      const velChange: number = desiredX - vel.x;
-      const impulse: any = this.body.GetMass() * velChange;
-
-      this.body.ApplyLinearImpulse(new box2d.b2Vec2(impulse, 0), this.body.GetWorldCenter(), true);
+      this.sensorFixture.SetUserData({
+        ...this.playerMovement,
+        velocity,
+        moveX: input.moveX
+      });
     }
   }
 }
