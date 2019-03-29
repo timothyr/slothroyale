@@ -13,4 +13,5 @@ export enum MoveY {
 export class Input {
     moveX: MoveX = MoveX.NONE;
     moveY: MoveY = MoveY.NONE;
+    jump: boolean;
 }

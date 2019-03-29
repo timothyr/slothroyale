@@ -159,7 +159,7 @@ export class Main {
 
         break;
       case 'Shift':
-
+        this.m_input.jump = isPressed;
         break;
       case 'ArrowLeft':
         if (isPressed) {

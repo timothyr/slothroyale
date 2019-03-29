@@ -4,6 +4,8 @@ import { Input, MoveX } from '@game/core/Input';
 import { Player, PlayerMovement } from '@game/player/Player';
 import { b2Fixture, b2WorldManifold, b2Vec2, b2Atan2, b2RadToDeg } from '@flyover/box2d';
 
+import { g_debugDraw } from '@game/core/DebugDraw';
+
 export class Map extends MapBase {
 
   constructor() {
@@ -26,13 +28,37 @@ export class Map extends MapBase {
 
   public CreateContactListener(): void {
     const listener = new box2d.b2ContactListener();
-    // listener.BeginContact = (contact) => {
-    //     // console.log(contact.GetFixtureA().GetBody().GetUserData());
-    //     console.log(contact)
-    // }
-    // listener.EndContact = function(contact) {
-    //     // console.log(contact.GetFixtureA().GetBody().GetUserData());
-    // }
+    listener.BeginContact = (contact) => {
+        const fixtureA: b2Fixture = contact.GetFixtureA();
+        const fixtureB: b2Fixture = contact.GetFixtureB();
+
+        const playerMovementA: PlayerMovement = fixtureA.GetUserData() || null;
+        const playerMovementB: PlayerMovement = fixtureB.GetUserData() || null;
+
+        if (playerMovementA) {
+          this.player.addNumFootContacts(1);
+        }
+
+        if (playerMovementB) {
+          this.player.addNumFootContacts(1);
+        }
+    };
+
+    listener.EndContact = (contact) => {
+      const fixtureA: b2Fixture = contact.GetFixtureA();
+      const fixtureB: b2Fixture = contact.GetFixtureB();
+
+      const playerMovementA: PlayerMovement = fixtureA.GetUserData() || null;
+      const playerMovementB: PlayerMovement = fixtureB.GetUserData() || null;
+
+      if (playerMovementA) {
+        this.player.addNumFootContacts(-1);
+      }
+
+      if (playerMovementB) {
+        this.player.addNumFootContacts(-1);
+      }
+    };
     // listener.PostSolve = function(contact, impulse) {
     // }
 
@@ -48,33 +74,31 @@ export class Map extends MapBase {
 
       let surfaceVelocityModifier = 0;
 
-      if (playerMovementA) {
-        const localNormal = fixtureA.GetBody().GetLocalVector(worldManifold.normal, new b2Vec2());
+      const getForce = (playerMovement: PlayerMovement, localNormal: b2Vec2) => {
         const angle = b2Atan2(localNormal.y, localNormal.x);
         // Only move if the hill isn't too steep
-        if (playerMovementA.minAngle < angle && angle < playerMovementA.maxAngle
+        if (playerMovement.minAngle < angle && angle < playerMovement.maxAngle
           // Let the player move down any hill
-          || playerMovementA.moveX === MoveX.RIGHT && playerMovementA.minAngle > angle
-          || playerMovementA.moveX === MoveX.LEFT &&  angle > playerMovementA.maxAngle) {
-          surfaceVelocityModifier += playerMovementA.velocity;
+          || playerMovement.moveX === MoveX.RIGHT && playerMovement.minAngle > angle
+          || playerMovement.moveX === MoveX.LEFT &&  angle > playerMovement.maxAngle) {
+          // Add velocity
+          surfaceVelocityModifier += playerMovement.velocity;
         }
+      };
+
+      if (playerMovementA) {
+        const localNormal = fixtureA.GetBody().GetLocalVector(worldManifold.normal, new b2Vec2());
+        getForce(playerMovementA, localNormal);
       }
 
       if (playerMovementB) {
         const negWorldNormal = new b2Vec2(-worldManifold.normal.x, -worldManifold.normal.y);
         const localNormal = fixtureB.GetBody().GetLocalVector(negWorldNormal, new b2Vec2());
-        const angle = b2Atan2(localNormal.y, localNormal.x);
-        // Only move if the hill isn't too steep
-        if (playerMovementB.minAngle < angle && angle < playerMovementB.maxAngle
-          // Let the player move down any hill
-          || playerMovementB.moveX === MoveX.RIGHT && playerMovementB.minAngle > angle
-          || playerMovementB.moveX === MoveX.LEFT &&  angle > playerMovementB.maxAngle) {
-          surfaceVelocityModifier += playerMovementB.velocity;
-        }
+        getForce(playerMovementB, localNormal);
       }
 
       contact.SetTangentSpeed(surfaceVelocityModifier);
-    }
+    };
 
     this.m_world.SetContactListener(listener);
   }
@@ -82,6 +106,8 @@ export class Map extends MapBase {
   public Step(settings: Settings, input: Input): void {
 
     this.player.handleInput(input);
+
+    g_debugDraw.DrawString(500, 500, `jump? ${this.player.canJump()}`)
 
     super.Step(settings, input);
   }
