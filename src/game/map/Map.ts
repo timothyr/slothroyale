@@ -5,19 +5,69 @@ import { Player, PlayerMovement } from '@game/player/Player';
 import { b2Fixture, b2WorldManifold, b2Vec2, b2Atan2, b2RadToDeg } from '@flyover/box2d';
 
 import { g_debugDraw } from '@game/core/DebugDraw';
+import { GenerateMap } from '@game/map/map-generation/MapGenerator';
 
 export class Map extends MapBase {
+
+  public CreatePoly(hullArray, avgX, avgY): void {
+
+    console.log('hull pts', typeof(hullArray), hullArray)
+    
+
+    // if (hullArray.length > 30) {
+    //   return
+    // }
+
+    const vertices: box2d.b2Vec2[] = hullArray.map(v => {
+      return new box2d.b2Vec2(
+        (v.x / 5) - (avgX / 5), 
+        (v.y / -5) - (avgY / -5)
+        
+        );
+    });
+
+    const bd = new box2d.b2BodyDef();
+    const ground = this.m_world.CreateBody(bd);
+
+    // Polygon
+    {
+      const shape = new box2d.b2PolygonShape();
+
+      shape.Set(vertices, vertices.length);
+      ground.CreateFixture(shape, 0.0);
+    }
+  }
 
   constructor() {
     super();
 
     this.CreateContactListener();
 
-    this.CreateWalls();
-    this.CreateRamp();
+    // this.CreateWalls();
+    // this.CreateRamp();
+
+    GenerateMap().then((map) => {
+
+
+
+      map.decomposed.forEach(polyShape => {
+          
+            console.log("poly length", polyShape.length)
+            // for pts
+            this.CreatePoly(polyShape, map.avgX, map.avgY);
+
+      })
+
+
+      this.player = new Player(this.m_world);
+
+      this.player.setPosition(0, map.avgY / 3)
+
+    });
+    
     // this.CreateCircles(2);
 
-    this.player = new Player(this.m_world);
+    
   }
 
   player: Player;
@@ -105,9 +155,12 @@ export class Map extends MapBase {
 
   public Step(settings: Settings, input: Input): void {
 
-    this.player.handleInput(input);
+    if(this.player) {
+      this.player.handleInput(input);
 
-    g_debugDraw.DrawString(500, 500, `jump? ${this.player.canJump()}`)
+      g_debugDraw.DrawString(500, 500, `jump? ${this.player.canJump()}`);
+    }
+    
 
     super.Step(settings, input);
   }

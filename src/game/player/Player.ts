@@ -87,6 +87,8 @@ export class Player {
         this.stopped = false;
       }
 
+      console.log("pos", this.body.GetPosition())
+
       let velocity = 0;
       let direction: PlayerDirection;
 
@@ -140,5 +142,9 @@ export class Player {
     if (this.jumpTimer > 0) {
       this.jumpTimer--;
     }
+  }
+
+  setPosition(x, y): void {
+    this.body.SetPosition(new box2d.b2Vec2(x,y));
   }
 }
