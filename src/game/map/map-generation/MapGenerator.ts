@@ -115,38 +115,19 @@ export async function GenerateMap() {
       polyCoords.push(pt[1])
     })
 
-    const poly = snoe.hxGeomAlgo.PolyTools.toPointArray(polyCoords);
+    // Convert to a hxGeomAlgo compatible polygon
+    let poly = snoe.hxGeomAlgo.PolyTools.toPointArray(polyCoords);
 
-    const decomposed = snoe.hxGeomAlgo.Bayazit.decomposePoly(poly);
-    console.log("decomposed", decomposed)
+    // Remove duplicate and unnecessary vertices
+    poly = snoe.hxGeomAlgo.RamerDouglasPeucker.simplify(poly);
 
-    decomposed.map(cwPoly => snoe.hxGeomAlgo.PolyTools.makeCW(cwPoly))
+    // SnoeyinKeil needs an even number of vertices
+    if (poly.length % 2 === 1) {
+      poly.pop()
+    }
 
-    
-
-    // const decomposed = snoe.hxGeomAlgo.SnoeyinkKeil.decomposePoly(poly)
-
-
-    // const hxPts = pts.map(pt => snoe.hxGeomAlgo._HxPoint.HxPoint_Impl_._new(pt[0], pt[1]));
-    // const poly = snoe.hxGeomAlgo.RamerDouglasPeucker.simplify(hxPts)
-    // const decomposed = snoe.hxGeomAlgo.SnoeyinkKeil.decomposePoly(poly)
-
- 
-
-    // const decomposed = snoe.hxGeomAlgo.SnoeyinkKeil.decomposePoly(hxPts)
-
-    // console.log("hxpts poly", decomposed)
-
-    // _HxPoint.HxPoint_Impl_
-
-    // const snoetest = snoe.hxGeomAlgo_SnoeyinkKeil(pts)
-    // console.log("snoetest", snoetest)
-
-
-
-
-
-    // console.log("hgull points", pts)
+    // Use SnoeyinKeil algorithm to decompose polygon into many small polygons
+    const decomposed = snoe.hxGeomAlgo.SnoeyinkKeil.decomposePoly(poly);
 
     console.log("avgX", avgX)
     console.log("avgY", avgY)
