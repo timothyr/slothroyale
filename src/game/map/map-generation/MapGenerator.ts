@@ -14,49 +14,50 @@ export async function GenerateMap() {
       terrainTypeImg: './assets/type-1.png',
       noiseResolution: 35
     });
-    console.log("frikkin loaded bud");
+    console.log('frikkin loaded bud');
 
     // Generate Terrain Shape
-    const terrainShape = terrainGenerator.generate(Math.random())
-    console.log("terrainshape", terrainShape)
+    // const terrainShape = terrainGenerator.generate(Math.random());
+    const terrainShape = terrainGenerator.generate(0.2);
+    console.log('terrainshape', terrainShape);
 
-    const shapeData = terrainShape.getContext('2d').getImageData(0, 0, terrainShape.width, terrainShape.height)
-    const terr = new ImageData(terrainShape.width, terrainShape.height)
+    let shapeData = terrainShape.getContext('2d').getImageData(0, 0, terrainShape.width, terrainShape.height);
+    const terr = new ImageData(terrainShape.width, terrainShape.height);
 
     // Texturize
-    const w = terr.width
-    const h = terr.height
+    const w = terr.width;
+    const h = terr.height;
 
-    const terrainData = shapeData.data//this.terrainShape.data
-    const terrain = terr.data
+    const terrainData = shapeData.data;// this.terrainShape.data
+    let terrain = terr.data;
 
-    const borderWidth = 8//this.options.borderWidth
-    const borderColor = hexToRgb('#89c53f')
+    const borderWidth = 8;// this.options.borderWidth
+    const borderColor = hexToRgb('#89c53f');
 
-    let hullPoints = []
+    const hullPoints = [];
 
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
-        const pix = (x + y * w) * 4
+        const pix = (x + y * w) * 4;
 
         if (terrainData[3 + pix] === 0) {
           // Pixel is not terrain
-          terrain[pix] = 0
-          terrain[1 + pix] = 0
-          terrain[2 + pix] = 0
-          terrain[3 + pix] = 0
-          continue
+          terrain[pix] = 0;
+          terrain[1 + pix] = 0;
+          terrain[2 + pix] = 0;
+          terrain[3 + pix] = 0;
+          continue;
         }
 
         // Pixel is terrain
-        terrain[3 + pix] = terrainData[3 + pix]   // Copy alpha
+        terrain[3 + pix] = terrainData[3 + pix];   // Copy alpha
 
-        let isBorder = false
+        let isBorder = false;
         if (borderWidth >= 1) {
           for (let bw = 1; bw <= borderWidth; bw++) {
             if (terrainData[(x + (y - bw) * w) * 4] === 0) {
-              isBorder = true
-              break
+              isBorder = true;
+              break;
             }
           }
         }
@@ -71,106 +72,178 @@ export async function GenerateMap() {
 
         // @@@@@@@@@@@@@@@@@@@@@@@@@
         // add pixel to hull
-        hullPoints.push([x,y])
+        hullPoints.push([x, y]);
         // @@@@@@@@@@@@@@@@@@@@@@@@@
 
-        terrain[pix] = 255
-        terrain[1 + pix] = 0
-        terrain[2 + pix] = 0
+        terrain[pix] = 255;
+        terrain[1 + pix] = 0;
+        terrain[2 + pix] = 0;
 
       }
     }
 
-    console.log("marching", marchingsquares)
+    console.log('marching', marchingsquares);
 
     // ********** MARCHING
 
     const len = width * height;
     const data = new Uint8Array(len);
+    const hulls = [];
+    let lastHull = [];
 
-    for (let i = 0; i < len; ++i){
+    let finished = false;
+
+    let DEBUG_COUNT = 0;
+
+    const context = terrainShape.getContext('2d');
+    context.globalCompositeOperation = 'destination-out';
+
+    while (!finished) {
+
+      DEBUG_COUNT += 1;
+      if (DEBUG_COUNT > 6) {
+        finished = true;
+        continue;
+      }
+
+      // Get points
+      for (let i = 0; i < len; ++i) {
         data[i] = terrain[i << 2];
+      }
+
+      // March
+      const outlinePoints = marchingsquares.getBlobOutlinePoints(data, width, height);  // returns [x1,y1,x2,y2,x3,y3... etc.]
+      console.log('marching out', outlinePoints);
+
+      // Check
+
+      if (arraysEqual(lastHull,outlinePoints)) {
+        hulls.pop()
+        finished = true
+        continue
+      }
+
+      lastHull = outlinePoints;
+
+      // End of loop?
+      if (outlinePoints.length <= 1) {
+        finished = true;
+        continue;
+      }
+
+      // Add march to hulls
+      hulls.push(outlinePoints);
+
+
+
+
+
+      // // paste onto canvas
+      // context.clearRect(0, 0, terrainShape.width, terrainShape.height);
+      // context.putImageData(terr, 0, 0);
+
+      context.strokeStyle = 'green'; // `rgba(0,0,255,0.25)`;// "blue";
+      context.lineWidth = 5;
+      context.beginPath();
+
+      const region = new Path2D();
+
+      const first = true;
+      let last = 0;
+
+      for (let index = 0; index < outlinePoints.length; index++) {
+        const element = outlinePoints[index];
+        if (index % 2 === 0) {
+          last = element;
+        } else {
+
+          region.lineTo(last, element);
+          context.lineTo(last, element);
+          context.moveTo(last, element);
+
+        }
+      }
+      context.stroke();
+      context.closePath();
+
+      region.closePath();
+
+      // do a filling
+
+      context.fillStyle = `rgba(0,0,255,1)`;
+      context.fill(region);
+
+      shapeData = context.getImageData(0, 0, terrainShape.width, terrainShape.height);
+      terrain = shapeData.data;
+
     }
 
-    const outlinePoints = marchingsquares.getBlobOutlinePoints(data, width, height);  // returns [x1,y1,x2,y2,x3,y3... etc.]
+    console.log('hulls', hulls);
+    let polygons = []
 
-    console.log("marching out", outlinePoints)
+    hulls.forEach(hull => {
+      let poly = snoe.hxGeomAlgo.PolyTools.toPointArray(hull);
+
+      // Remove duplicate and unnecessary vertices
+      poly = snoe.hxGeomAlgo.RamerDouglasPeucker.simplify(poly);
+
+      // SnoeyinKeil needs an even number of vertices
+      if (poly.length % 2 === 1) {
+        poly.pop()
+      }
+
+      // Use SnoeyinKeil algorithm to decompose polygon into many small polygons
+      const decomposed = snoe.hxGeomAlgo.SnoeyinkKeil.decomposePoly(poly);
+      console.log("decomposed", decomposed)
+      polygons.push(...decomposed)
+    })
+
+    console.log("all decomposed", polygons)
+
+
 
     // ******* end of MARCHING
 
-    // paste onto canvas
-    const context = terrainShape.getContext('2d');
-    context.clearRect(0, 0, terrainShape.width, terrainShape.height);
-    context.putImageData(terr, 0, 0);
+
     //
 
     // lasso around march
     // context.beginPath();
-    context.globalCompositeOperation = 'destination-out';
 
-    context.strokeStyle = 'green'; // `rgba(0,0,255,0.25)`;// "blue";
-    context.lineWidth = 5;
-    context.beginPath();
 
-    const region = new Path2D();
 
-    const first = true;
-    let last = 0;
 
-    for (let index = 0; index < outlinePoints.length; index++) {
-      const element = outlinePoints[index];
-      if (index % 2 === 0) {
-        last = element;
-      } else {
 
-        region.lineTo(last, element);
-        context.lineTo(last, element);
-        context.moveTo(last, element);
-
-      }
-    }
-    context.stroke();
-    context.closePath();
-
-    region.closePath();
-
-    // do a filling
-
-    context.fillStyle = `rgba(0,0,255,1)`;
-    context.fill(region);
 
     // end of lasso around march
 
-    // get data again
-    const shapeData2 = context.getImageData(0, 0, terrainShape.width, terrainShape.height)
-    const terrain2 = shapeData2.data
+    // // get data again
+    // const shapeData2 = context.getImageData(0, 0, terrainShape.width, terrainShape.height)
+    // const terrain2 = shapeData2.data
 
-    //marching 2
+    // //marching 2
 
-    // ********** MARCHING
+    // // ********** MARCHING
 
-    const data2 = new Uint8Array(len);
+    // const data2 = new Uint8Array(len);
 
-    for (let i = 0; i < len; ++i){
-        data2[i] = terrain2[i << 2];
-    }
+    // for (let i = 0; i < len; ++i){
+    //     data2[i] = terrain2[i << 2];
+    // }
 
-    const outlinePoints2 = marchingsquares.getBlobOutlinePoints(data2, width, height);  // returns [x1,y1,x2,y2,x3,y3... etc.]
+    // const outlinePoints2 = marchingsquares.getBlobOutlinePoints(data2, width, height);  // returns [x1,y1,x2,y2,x3,y3... etc.]
 
-    console.log("marching out2", outlinePoints2)
+    // console.log("marching out2", outlinePoints2)
 
-    // ******* end of MARCHING
-
-
-    let hulls = []
+    // // ******* end of MARCHING
 
 
-    console.log(hullPoints)
+    console.log(hullPoints);
 
     return {
       terr,
       hullPoints
-    ,hulls,outlinePoints, outlinePoints2}
+    , hulls,polygons};
 
     // return hullPoints
 
@@ -223,7 +296,7 @@ export async function GenerateMap() {
     // console.log("avgX", avgX)
     // console.log("avgY", avgY)
 
-    // return { 
+    // return {
     //   decomposed,
     //   avgX,
     //   avgY
@@ -239,4 +312,17 @@ export async function GenerateMap() {
     // // });
     // // fgCtx.stroke();
     // // fgCtx.closePath();
+}
+
+function arraysEqual(arr1, arr2) {
+  if (arr1.length !== arr2.length) {
+      return false;
+  }
+  for (let i = arr1.length; i--;) {
+      if (arr1[i] !== arr2[i]) {
+          return false;
+      }
+  }
+
+  return true;
 }

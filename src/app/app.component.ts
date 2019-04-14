@@ -23,64 +23,67 @@ export class AppComponent implements AfterViewInit {
   public async debugGenerateMap(debugctx: CanvasRenderingContext2D) {
     const hullArray = await GenerateMap();
 
-    // fgCanvas.width = this.terr.width
-    // fgCanvas.height = this.terr.height
+    // // fgCanvas.width = this.terr.width
+    // // fgCanvas.height = this.terr.height
     const debugCanvasEl: HTMLCanvasElement = this.debugcanvas.nativeElement;
 
     debugCanvasEl.width = hullArray.terr.width;
     debugCanvasEl.height = hullArray.terr.height;
 
-    debugctx.putImageData(hullArray.terr, 0, 0);
+    // debugctx.putImageData(hullArray.terr, 0, 0);
 
 
+    // hullArray.hulls.forEach(hull => {
+    //   console.log('hull', hull);
+    // });
+
+    // // // ******** marching
     hullArray.hulls.forEach(hull => {
-      console.log('hull', hull);
-    });
-
-    // // ******** marching
-
-    debugctx.strokeStyle = 'green';// `rgba(0,0,255,0.25)`;// "blue";
-    debugctx.lineWidth = 3;
-    debugctx.beginPath();
-
-    let last = 0;
-
-    for (let index = 0; index < hullArray.outlinePoints.length; index++) {
-      const element = hullArray.outlinePoints[index];
-      if (index % 2 === 0) {
-        last = element;
-      } else {
-        debugctx.lineTo(last, element);
-        debugctx.moveTo(last, element);
+      debugctx.strokeStyle = 'green';// `rgba(0,0,255,0.25)`;// "blue";
+      debugctx.lineWidth = 3;
+      debugctx.beginPath();
+  
+      let last = 0;
+  
+      for (let index = 0; index < hull.length; index++) {
+        const element = hull[index];
+        if (index % 2 === 0) {
+          last = element;
+        } else {
+          debugctx.lineTo(last, element);
+          debugctx.moveTo(last, element);
+        }
       }
-    }
+  
+      debugctx.stroke();
+      debugctx.closePath();
+    })
 
-    debugctx.stroke();
-    debugctx.closePath();
+    
 
 
-    // // ******** end of marching
+    // // // ******** end of marching
 
-     // ******** marching 2
+    //  // ******** marching 2
 
-    debugctx.strokeStyle = 'blue'; // `rgba(0,0,255,0.25)`;// "blue";
-    debugctx.lineWidth = 10;
-    debugctx.beginPath();
+    // debugctx.strokeStyle = 'blue'; // `rgba(0,0,255,0.25)`;// "blue";
+    // debugctx.lineWidth = 10;
+    // debugctx.beginPath();
 
-    last = 0;
+    // last = 0;
 
-    for (let index = 0; index < hullArray.outlinePoints2.length; index++) {
-       const element = hullArray.outlinePoints2[index];
-       if (index % 2 === 0) {
-         last = element;
-       } else {
-         debugctx.lineTo(last, element);
-         debugctx.moveTo(last, element);
-       }
-     }
+    // for (let index = 0; index < hullArray.outlinePoints2.length; index++) {
+    //    const element = hullArray.outlinePoints2[index];
+    //    if (index % 2 === 0) {
+    //      last = element;
+    //    } else {
+    //      debugctx.lineTo(last, element);
+    //      debugctx.moveTo(last, element);
+    //    }
+    //  }
 
-    debugctx.stroke();
-    debugctx.closePath();
+    // debugctx.stroke();
+    // debugctx.closePath();
 
 
      // ******** end of marching 2
