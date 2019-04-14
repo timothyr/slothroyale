@@ -1,23 +1,23 @@
 import { TerrainGenerator } from '@game/map/map-generation/TerrainVer/TerrainGenerator.js';
 import { hexToRgb } from '@game/map/map-generation/TerrainVer/utils.js';
 import * as hull from '@game/map/map-generation/hull.js';
-// import * as snoe from '@game/map/map-generation/SnoeyinkKeil.js';
 import * as snoe from '@game/map/map-generation/hxGeo.js';
+import * as marchingsquares from '@game/map/map-generation/marchingsquares.js';
 
 export async function GenerateMap() {
-    const width = 700;
-    const height = 700;
+    const width = 1024;
+    const height = 612;
     const terrainGenerator = await TerrainGenerator.fromImgUrl({
       debug: false,
       width: width - width % 2, // Make sure width is even
       height: height - height % 2, // Make sure height is even
-      terrainTypeImg: './assets/type-2.png',
+      terrainTypeImg: './assets/type-1.png',
       noiseResolution: 35
     });
     console.log("frikkin loaded bud");
 
     // Generate Terrain Shape
-    const terrainShape = terrainGenerator.generate(0)
+    const terrainShape = terrainGenerator.generate(Math.random())
     console.log("terrainshape", terrainShape)
 
     const shapeData = terrainShape.getContext('2d').getImageData(0, 0, terrainShape.width, terrainShape.height)
@@ -61,13 +61,13 @@ export async function GenerateMap() {
           }
         }
 
-        if (isBorder) {
-          // Pixel is on terrain top border
-          terrain[pix] = borderColor.r
-          terrain[1 + pix] = borderColor.g
-          terrain[2 + pix] = borderColor.b
-          continue
-        }
+        // if (isBorder) {
+        //   // Pixel is on terrain top border
+        //   terrain[pix] = borderColor.r
+        //   terrain[1 + pix] = borderColor.g
+        //   terrain[2 + pix] = borderColor.b
+        //   continue
+        // }
 
         // @@@@@@@@@@@@@@@@@@@@@@@@@
         // add pixel to hull
@@ -81,71 +81,162 @@ export async function GenerateMap() {
       }
     }
 
+    console.log("marching", marchingsquares)
+
+    // ********** MARCHING
+
+    const len = width * height;
+    const data = new Uint8Array(len);
+
+    for (let i = 0; i < len; ++i){
+        data[i] = terrain[i << 2];
+    }
+
+    const outlinePoints = marchingsquares.getBlobOutlinePoints(data, width, height);  // returns [x1,y1,x2,y2,x3,y3... etc.]
+
+    console.log("marching out", outlinePoints)
+
+    // ******* end of MARCHING
+
+    // paste onto canvas
+    const context = terrainShape.getContext('2d');
+    context.clearRect(0, 0, terrainShape.width, terrainShape.height);
+    context.putImageData(terr, 0, 0);
+    //
+
+    // lasso around march
+    // context.beginPath();
+    context.globalCompositeOperation = 'destination-out';
+
+    context.strokeStyle = 'green'; // `rgba(0,0,255,0.25)`;// "blue";
+    context.lineWidth = 5;
+    context.beginPath();
+
+    const region = new Path2D();
+
+    const first = true;
+    let last = 0;
+
+    for (let index = 0; index < outlinePoints.length; index++) {
+      const element = outlinePoints[index];
+      if (index % 2 === 0) {
+        last = element;
+      } else {
+
+        region.lineTo(last, element);
+        context.lineTo(last, element);
+        context.moveTo(last, element);
+
+      }
+    }
+    context.stroke();
+    context.closePath();
+
+    region.closePath();
+
+    // do a filling
+
+    context.fillStyle = `rgba(0,0,255,1)`;
+    context.fill(region);
+
+    // end of lasso around march
+
+    // get data again
+    const shapeData2 = context.getImageData(0, 0, terrainShape.width, terrainShape.height)
+    const terrain2 = shapeData2.data
+
+    //marching 2
+
+    // ********** MARCHING
+
+    const data2 = new Uint8Array(len);
+
+    for (let i = 0; i < len; ++i){
+        data2[i] = terrain2[i << 2];
+    }
+
+    const outlinePoints2 = marchingsquares.getBlobOutlinePoints(data2, width, height);  // returns [x1,y1,x2,y2,x3,y3... etc.]
+
+    console.log("marching out2", outlinePoints2)
+
+    // ******* end of MARCHING
+
+
+    let hulls = []
+
+
     console.log(hullPoints)
 
-    // Make hull
+    return {
+      terr,
+      hullPoints
+    ,hulls,outlinePoints, outlinePoints2}
 
-    // get hull
-    const pts = hull(hullPoints, 20);
+    // return hullPoints
 
-    console.log("snoe", snoe.hxGeomAlgo)
+    // // Make hull
 
-    // Avgs
-    // X
-    const ptsX = pts.map(pt => pt[0])
-    console.log("ptsX", ptsX)
-    let sumX = 0
-    for(let i = 0; i < ptsX.length; i++) {
-        sumX += ptsX[i]
-    }
-    const avgX = sumX / ptsX.length
+    // // get hull
+    // const pts = hull(hullPoints, 20);
 
-    //Y
-    const ptsY = pts.map(pt => pt[1])
-    let sumY = 0
-    for(let i = 0; i < ptsY.length; i++) {
-        sumY += ptsY[i]
-    }
-    const avgY = sumY / ptsY.length
+    // console.log("snoe", snoe.hxGeomAlgo)
 
-    let polyCoords = []
+    // // Avgs
+    // // X
+    // const ptsX = pts.map(pt => pt[0])
+    // console.log("ptsX", ptsX)
+    // let sumX = 0
+    // for(let i = 0; i < ptsX.length; i++) {
+    //     sumX += ptsX[i]
+    // }
+    // const avgX = sumX / ptsX.length
 
-    pts.forEach(pt => {
-      polyCoords.push(pt[0])
-      polyCoords.push(pt[1])
-    })
+    // //Y
+    // const ptsY = pts.map(pt => pt[1])
+    // let sumY = 0
+    // for(let i = 0; i < ptsY.length; i++) {
+    //     sumY += ptsY[i]
+    // }
+    // const avgY = sumY / ptsY.length
 
-    // Convert to a hxGeomAlgo compatible polygon
-    let poly = snoe.hxGeomAlgo.PolyTools.toPointArray(polyCoords);
+    // let polyCoords = []
 
-    // Remove duplicate and unnecessary vertices
-    poly = snoe.hxGeomAlgo.RamerDouglasPeucker.simplify(poly);
+    // pts.forEach(pt => {
+    //   polyCoords.push(pt[0])
+    //   polyCoords.push(pt[1])
+    // })
 
-    // SnoeyinKeil needs an even number of vertices
-    if (poly.length % 2 === 1) {
-      poly.pop()
-    }
+    // // Convert to a hxGeomAlgo compatible polygon
+    // let poly = snoe.hxGeomAlgo.PolyTools.toPointArray(polyCoords);
 
-    // Use SnoeyinKeil algorithm to decompose polygon into many small polygons
-    const decomposed = snoe.hxGeomAlgo.SnoeyinkKeil.decomposePoly(poly);
+    // // Remove duplicate and unnecessary vertices
+    // poly = snoe.hxGeomAlgo.RamerDouglasPeucker.simplify(poly);
 
-    console.log("avgX", avgX)
-    console.log("avgY", avgY)
+    // // SnoeyinKeil needs an even number of vertices
+    // if (poly.length % 2 === 1) {
+    //   poly.pop()
+    // }
 
-    return { 
-      decomposed,
-      avgX,
-      avgY
+    // // Use SnoeyinKeil algorithm to decompose polygon into many small polygons
+    // const decomposed = snoe.hxGeomAlgo.SnoeyinkKeil.decomposePoly(poly);
 
-    }
-    // // draw hull
-    // fgCtx.strokeStyle = "blue";
-    // fgCtx.lineWidth = 2;
-    // fgCtx.beginPath();
-    // pts.forEach(function(px) {
-    //   fgCtx.lineTo(px[0], px[1]);
-    //   fgCtx.moveTo(px[0], px[1]);
-    // });
-    // fgCtx.stroke();
-    // fgCtx.closePath();
+    // console.log("avgX", avgX)
+    // console.log("avgY", avgY)
+
+    // return { 
+    //   decomposed,
+    //   avgX,
+    //   avgY
+
+    // }
+    // // // draw hull
+    // // fgCtx.strokeStyle = "blue";
+    // // fgCtx.lineWidth = 2;
+    // // fgCtx.beginPath();
+    // // pts.forEach(function(px) {
+    // //   fgCtx.lineTo(px[0], px[1]);
+    // //   fgCtx.moveTo(px[0], px[1]);
+    // // });
+    // // fgCtx.stroke();
+    // // fgCtx.closePath();
 }

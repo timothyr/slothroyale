@@ -46,24 +46,24 @@ export class Map extends MapBase {
     // this.CreateWalls();
     // this.CreateRamp();
 
-    GenerateMap().then((map) => {
+    // GenerateMap().then((map) => {
 
 
 
-      map.decomposed.forEach(polyShape => {
+    //   map.decomposed.forEach(polyShape => {
           
-            console.log("poly length", polyShape.length)
-            // for pts
-            this.CreatePoly(polyShape, map.avgX, map.avgY);
+    //         console.log("poly length", polyShape.length)
+    //         // for pts
+    //         this.CreatePoly(polyShape, map.avgX, map.avgY);
 
-      })
+    //   })
 
 
-      this.player = new Player(this.m_world);
+    //   this.player = new Player(this.m_world);
 
-      this.player.setPosition(0, map.avgY / 3)
+    //   this.player.setPosition(0, map.avgY / 3)
 
-    });
+    // });
     
     // this.CreateCircles(2);
 
