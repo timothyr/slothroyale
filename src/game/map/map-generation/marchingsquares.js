@@ -65,6 +65,10 @@ MarchingSquaresOpt.walkPerimeter = function(source_array, width, height, start_w
 
     let idx = 0|0,  // Note: initialize it with an integer, so the JS interpreter optimizes for this type.
 
+    // timeout if we exceed 100k iterations
+    max_iterations = 100000,
+    iterations = 0,
+
     // our current x and y positions, initialized
     // to the init values passed in
         w = start_w,
@@ -93,7 +97,13 @@ MarchingSquaresOpt.walkPerimeter = function(source_array, width, height, start_w
                 break;
         }
 
-    } while (w != start_w || h != start_h);
+        iterations++;
+        if (iterations > max_iterations) {
+            console.log("timed out on walkperimeter")
+            throw new Error("Walk perimeter out of bounds")
+        }
+
+    } while ((w != start_w || h != start_h) && max_iterations > iterations);
 
     point_list.push(w, h);
 

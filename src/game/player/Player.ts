@@ -1,8 +1,8 @@
 import * as box2d from '@flyover/box2d';
 import { Input, MoveX } from '@game/core/Input';
 
-const PLAYER_MIN_ANGLE = -90 - 70;
-const PLAYER_MAX_ANGLE = -90 + 70;
+const PLAYER_MIN_ANGLE = -90 - 82;//- 70;
+const PLAYER_MAX_ANGLE = -90 + 82;//+ 70;
 
 export const enum PlayerDirection {
   LEFT = -1,
@@ -86,8 +86,6 @@ export class Player {
         this.body.SetSleepingAllowed(false);
         this.stopped = false;
       }
-
-      console.log("pos", this.body.GetPosition())
 
       let velocity = 0;
       let direction: PlayerDirection;

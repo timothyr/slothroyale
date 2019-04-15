@@ -2,27 +2,46 @@ import * as box2d from '@flyover/box2d';
 import { MapBase, Settings } from '@game/core/MapBase';
 import { Input, MoveX } from '@game/core/Input';
 import { Player, PlayerMovement } from '@game/player/Player';
-import { b2Fixture, b2WorldManifold, b2Vec2, b2Atan2, b2RadToDeg } from '@flyover/box2d';
+import { b2Fixture, b2WorldManifold, b2Vec2, b2Atan2 } from '@flyover/box2d';
 
 import { g_debugDraw } from '@game/core/DebugDraw';
 import { GenerateMap } from '@game/map/map-generation/MapGenerator';
 
 export class Map extends MapBase {
 
-  public CreatePoly(hullArray, avgX, avgY): void {
+  constructor() {
+    super();
 
-    console.log('hull pts', typeof(hullArray), hullArray)
-    
+    this.CreateContactListener();
 
-    // if (hullArray.length > 30) {
-    //   return
-    // }
+    GenerateMap().then((map) => {
+      // Create a physics polygon for each shape
+      this.mapWidthPx = map.width;
+      this.mapHeightPx = map.height;
+      map.polygons.forEach(polyShape => this.CreatePoly(polyShape));
 
-    const vertices: box2d.b2Vec2[] = hullArray.map(v => {
+      this.player = new Player(this.m_world);
+      this.player.setPosition(0, this.mapHeightPx / 8);
+
+    });
+  }
+
+  pixelsToMeter = 8;
+  mapWidthPx = 1280;
+  mapHeightPx = 612;
+
+  player: Player;
+
+  public static Create(): MapBase {
+    return new Map();
+  }
+
+  public CreatePoly(polygon): void {
+    const vertices: box2d.b2Vec2[] = polygon.map(v => {
       return new box2d.b2Vec2(
-        (v.x / 5) - (avgX / 5), 
-        (v.y / -5) - (avgY / -5)
-        
+          // Center the polygons on the map
+          (v.x / this.pixelsToMeter) - ((this.mapWidthPx / 2) / this.pixelsToMeter),
+          (v.y / -this.pixelsToMeter) - ((this.mapHeightPx / 2) / -this.pixelsToMeter)
         );
     });
 
@@ -36,44 +55,6 @@ export class Map extends MapBase {
       shape.Set(vertices, vertices.length);
       ground.CreateFixture(shape, 0.0);
     }
-  }
-
-  constructor() {
-    super();
-
-    this.CreateContactListener();
-
-    // this.CreateWalls();
-    // this.CreateRamp();
-
-    GenerateMap().then((map) => {
-
-
-
-      map.polygons.forEach(polyShape => {
-          
-            console.log("poly length", polyShape.length)
-            // for pts
-            this.CreatePoly(polyShape, 1280 / 2, 612 / 2);
-
-      })
-
-
-      this.player = new Player(this.m_world);
-
-      this.player.setPosition(0, 612)
-
-    });
-    
-    // this.CreateCircles(2);
-
-    
-  }
-
-  player: Player;
-
-  public static Create(): MapBase {
-    return new Map();
   }
 
   public CreateContactListener(): void {
@@ -155,12 +136,12 @@ export class Map extends MapBase {
 
   public Step(settings: Settings, input: Input): void {
 
-    if(this.player) {
+    if (this.player) {
       this.player.handleInput(input);
 
       g_debugDraw.DrawString(500, 500, `jump? ${this.player.canJump()}`);
     }
-    
+
 
     super.Step(settings, input);
   }

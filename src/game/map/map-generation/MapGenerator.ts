@@ -1,90 +1,70 @@
 import { TerrainGenerator } from '@game/map/map-generation/TerrainVer/TerrainGenerator.js';
-import { hexToRgb } from '@game/map/map-generation/TerrainVer/utils.js';
-import * as hull from '@game/map/map-generation/hull.js';
-import * as snoe from '@game/map/map-generation/hxGeo.js';
+import * as hxGeom from '@game/map/map-generation/hxGeom.js';
 import * as marchingsquares from '@game/map/map-generation/marchingsquares.js';
 
 export async function GenerateMap() {
-    const width = 1024;
-    const height = 612;
+    // Width & Height need to match image dimensions
+    const width = 1024; // Make sure width is even
+    const height = 612; // Make sure height is even
     const terrainGenerator = await TerrainGenerator.fromImgUrl({
       debug: false,
-      width: width - width % 2, // Make sure width is even
-      height: height - height % 2, // Make sure height is even
+      width,
+      height,
       terrainTypeImg: './assets/type-1.png',
       noiseResolution: 35
     });
-    console.log('frikkin loaded bud');
 
     // Generate Terrain Shape
-    // const terrainShape = terrainGenerator.generate(Math.random());
-    const terrainShape = terrainGenerator.generate(0.2);
-    console.log('terrainshape', terrainShape);
+    let seed = Math.random(); // 0.11211616096027699; 
+    console.log('seed', seed);
 
+    let polygons;
+    let success = false;
+    while (!success) {
+      try {
+        polygons = GenerateTerrain(terrainGenerator, seed, width, height);
+        success = true;
+      } catch (err) {
+        seed += 0.001;
+        console.log(`Seed incremented to ${seed} because terrain generator threw error`, err);
+      }
+    }
+
+    return {width, height, polygons};
+}
+
+function GenerateTerrain(terrainGenerator, seed, width, height) {
+
+    const terrainShape = terrainGenerator.generate(seed);
+
+    // Get generated terrain from Canvas
     let shapeData = terrainShape.getContext('2d').getImageData(0, 0, terrainShape.width, terrainShape.height);
+    const terrainData = shapeData.data; // this.terrainShape.data
+
+    // Fresh image to draw on
     const terr = new ImageData(terrainShape.width, terrainShape.height);
-
-    // Texturize
-    const w = terr.width;
-    const h = terr.height;
-
-    const terrainData = shapeData.data;// this.terrainShape.data
     let terrain = terr.data;
 
-    const borderWidth = 8;// this.options.borderWidth
-    const borderColor = hexToRgb('#89c53f');
-
-    const hullPoints = [];
-
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        const pix = (x + y * w) * 4;
+    // Iterate through every pixel from generated terrain
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const pix = (x + y * width) * 4;
 
         if (terrainData[3 + pix] === 0) {
           // Pixel is not terrain
-          terrain[pix] = 0;
-          terrain[1 + pix] = 0;
-          terrain[2 + pix] = 0;
-          terrain[3 + pix] = 0;
+          terrain[3 + pix] = 0; // Set Alpha to 0
           continue;
         }
 
         // Pixel is terrain
-        terrain[3 + pix] = terrainData[3 + pix];   // Copy alpha
-
-        let isBorder = false;
-        if (borderWidth >= 1) {
-          for (let bw = 1; bw <= borderWidth; bw++) {
-            if (terrainData[(x + (y - bw) * w) * 4] === 0) {
-              isBorder = true;
-              break;
-            }
-          }
-        }
-
-        // if (isBorder) {
-        //   // Pixel is on terrain top border
-        //   terrain[pix] = borderColor.r
-        //   terrain[1 + pix] = borderColor.g
-        //   terrain[2 + pix] = borderColor.b
-        //   continue
-        // }
-
-        // @@@@@@@@@@@@@@@@@@@@@@@@@
-        // add pixel to hull
-        hullPoints.push([x, y]);
-        // @@@@@@@@@@@@@@@@@@@@@@@@@
-
         terrain[pix] = 255;
         terrain[1 + pix] = 0;
         terrain[2 + pix] = 0;
-
+        terrain[3 + pix] = 255; // Set Alpha > 0
       }
     }
 
-    console.log('marching', marchingsquares);
-
-    // ********** MARCHING
+    // Convert each visual blob into a hull
 
     const len = width * height;
     const data = new Uint8Array(len);
@@ -93,39 +73,47 @@ export async function GenerateMap() {
 
     let finished = false;
 
-    let DEBUG_COUNT = 0;
+    let hullCount = 0;
 
     const context = terrainShape.getContext('2d');
+
+    // This setting will erase instead of drawing to canvas
+    // We need it to delete the polygons from the image as we make polygons
     context.globalCompositeOperation = 'destination-out';
+
+    // ----------- Generate hulls from terrain -----------
 
     while (!finished) {
 
-      DEBUG_COUNT += 1;
-      if (DEBUG_COUNT > 6) {
+      // In case we get stuck in infinite loop
+      // quit after 100 loops
+      hullCount += 1;
+      if (hullCount > 100) {
         finished = true;
         continue;
       }
 
       // Get points
       for (let i = 0; i < len; ++i) {
+        // tslint:disable-next-line: no-bitwise
         data[i] = terrain[i << 2];
       }
 
-      // March
-      const outlinePoints = marchingsquares.getBlobOutlinePoints(data, width, height);  // returns [x1,y1,x2,y2,x3,y3... etc.]
-      console.log('marching out', outlinePoints);
+      // Run marching squares algorithm to get an outline of the next blob
+      // returns [x1,y1,x2,y2,x3,y3... etc.]
+      const outlinePoints = marchingsquares.getBlobOutlinePoints(data, width, height);
 
-      // Check
-
-      if (arraysEqual(lastHull,outlinePoints)) {
-        hulls.pop()
-        finished = true
-        continue
+      // If last hull equals current hull - then there was a duplicate
+      // Delete both and finish the loop
+      if (arraysEqual(lastHull, outlinePoints)) {
+        hulls.pop();
+        finished = true;
+        continue;
       }
 
       lastHull = outlinePoints;
 
-      // End of loop?
+      // If outline returns nothing then finish the loop
       if (outlinePoints.length <= 1) {
         finished = true;
         continue;
@@ -134,187 +122,76 @@ export async function GenerateMap() {
       // Add march to hulls
       hulls.push(outlinePoints);
 
+      // --------- Erase polygon from image ----------
 
-
-
-
-      // // paste onto canvas
-      // context.clearRect(0, 0, terrainShape.width, terrainShape.height);
-      // context.putImageData(terr, 0, 0);
-
-      context.strokeStyle = 'green'; // `rgba(0,0,255,0.25)`;// "blue";
-      context.lineWidth = 5;
+      // Erase the polygon from the image
+      // So that we can get the next polygon
+      context.strokeStyle = 'green';
+      context.lineWidth = 5; // Draw a thick line around the polygon
       context.beginPath();
 
+      // Draw a region for erasing the polygon
       const region = new Path2D();
 
-      const first = true;
-      let last = 0;
-
+      let x = 0;
       for (let index = 0; index < outlinePoints.length; index++) {
         const element = outlinePoints[index];
         if (index % 2 === 0) {
-          last = element;
+          x = element;
         } else {
-
-          region.lineTo(last, element);
-          context.lineTo(last, element);
-          context.moveTo(last, element);
-
+          region.lineTo(x, element);
+          context.lineTo(x, element);
+          context.moveTo(x, element);
         }
       }
+
+      // Draw the line around the polygon
       context.stroke();
       context.closePath();
 
+      // Close up the region for fill
       region.closePath();
 
-      // do a filling
-
-      context.fillStyle = `rgba(0,0,255,1)`;
+      // Fill the polygon to erase it
+      context.fillStyle = `rgba(0,0,255,100)`;
       context.fill(region);
 
       shapeData = context.getImageData(0, 0, terrainShape.width, terrainShape.height);
       terrain = shapeData.data;
-
     }
 
-    console.log('hulls', hulls);
-    let polygons = []
+    // ---------- Convert hulls into small polygons ----------
+
+    const polygons = [];
 
     hulls.forEach(hull => {
-      let poly = snoe.hxGeomAlgo.PolyTools.toPointArray(hull);
+      // Convert hull into data that hxGeomAlgo can use
+      let poly = hxGeom.hxGeomAlgo.PolyTools.toPointArray(hull);
 
       // Remove duplicate and unnecessary vertices
-      poly = snoe.hxGeomAlgo.RamerDouglasPeucker.simplify(poly);
+      poly = hxGeom.hxGeomAlgo.RamerDouglasPeucker.simplify(poly);
 
       // SnoeyinKeil needs an even number of vertices
       if (poly.length % 2 === 1) {
-        poly.pop()
+        poly.pop();
       }
 
-      // Use SnoeyinKeil algorithm to decompose polygon into many small polygons
-      const decomposed = snoe.hxGeomAlgo.SnoeyinkKeil.decomposePoly(poly);
-      console.log("decomposed", decomposed)
-      polygons.push(...decomposed)
-    })
+      // Use SnoeyinkKeil algorithm to decompose polygon into many small polygons
+      const hullPolygons = hxGeom.hxGeomAlgo.SnoeyinkKeil.decomposePoly(poly);
 
-    console.log("all decomposed", polygons)
+      // Add the polygons to the total
+      polygons.push(...hullPolygons);
+    });
 
-
-
-    // ******* end of MARCHING
-
-
-    //
-
-    // lasso around march
-    // context.beginPath();
-
-
-
-
-
-
-    // end of lasso around march
-
-    // // get data again
-    // const shapeData2 = context.getImageData(0, 0, terrainShape.width, terrainShape.height)
-    // const terrain2 = shapeData2.data
-
-    // //marching 2
-
-    // // ********** MARCHING
-
-    // const data2 = new Uint8Array(len);
-
-    // for (let i = 0; i < len; ++i){
-    //     data2[i] = terrain2[i << 2];
-    // }
-
-    // const outlinePoints2 = marchingsquares.getBlobOutlinePoints(data2, width, height);  // returns [x1,y1,x2,y2,x3,y3... etc.]
-
-    // console.log("marching out2", outlinePoints2)
-
-    // // ******* end of MARCHING
-
-
-    console.log(hullPoints);
-
-    return {
-      terr,
-      hullPoints
-    , hulls,polygons};
-
-    // return hullPoints
-
-    // // Make hull
-
-    // // get hull
-    // const pts = hull(hullPoints, 20);
-
-    // console.log("snoe", snoe.hxGeomAlgo)
-
-    // // Avgs
-    // // X
-    // const ptsX = pts.map(pt => pt[0])
-    // console.log("ptsX", ptsX)
-    // let sumX = 0
-    // for(let i = 0; i < ptsX.length; i++) {
-    //     sumX += ptsX[i]
-    // }
-    // const avgX = sumX / ptsX.length
-
-    // //Y
-    // const ptsY = pts.map(pt => pt[1])
-    // let sumY = 0
-    // for(let i = 0; i < ptsY.length; i++) {
-    //     sumY += ptsY[i]
-    // }
-    // const avgY = sumY / ptsY.length
-
-    // let polyCoords = []
-
-    // pts.forEach(pt => {
-    //   polyCoords.push(pt[0])
-    //   polyCoords.push(pt[1])
-    // })
-
-    // // Convert to a hxGeomAlgo compatible polygon
-    // let poly = snoe.hxGeomAlgo.PolyTools.toPointArray(polyCoords);
-
-    // // Remove duplicate and unnecessary vertices
-    // poly = snoe.hxGeomAlgo.RamerDouglasPeucker.simplify(poly);
-
-    // // SnoeyinKeil needs an even number of vertices
-    // if (poly.length % 2 === 1) {
-    //   poly.pop()
-    // }
-
-    // // Use SnoeyinKeil algorithm to decompose polygon into many small polygons
-    // const decomposed = snoe.hxGeomAlgo.SnoeyinkKeil.decomposePoly(poly);
-
-    // console.log("avgX", avgX)
-    // console.log("avgY", avgY)
-
-    // return {
-    //   decomposed,
-    //   avgX,
-    //   avgY
-
-    // }
-    // // // draw hull
-    // // fgCtx.strokeStyle = "blue";
-    // // fgCtx.lineWidth = 2;
-    // // fgCtx.beginPath();
-    // // pts.forEach(function(px) {
-    // //   fgCtx.lineTo(px[0], px[1]);
-    // //   fgCtx.moveTo(px[0], px[1]);
-    // // });
-    // // fgCtx.stroke();
-    // // fgCtx.closePath();
+    return polygons;
 }
 
-function arraysEqual(arr1, arr2) {
+/**
+ * Returns true if two arrays are equal
+ * @param arr1 first array
+ * @param arr2 second array
+ */
+function arraysEqual(arr1: any[], arr2: any[]) {
   if (arr1.length !== arr2.length) {
       return false;
   }
