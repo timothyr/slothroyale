@@ -1,6 +1,6 @@
 import { TerrainGenerator } from '@game/map/map-generation/TerrainVer/TerrainGenerator.js';
-import * as hxGeom from '@game/map/map-generation/hxGeom.js';
-import * as marchingsquares from '@game/map/map-generation/marchingsquares.js';
+import * as hxGeom from '@game/map/map-generation/hxGeomAlgo/hxGeomAlgo.js';
+import * as marchingsquares from '@game/map/map-generation/MarchingSquaresJS/MarchingSquares.js';
 
 export async function GenerateMap() {
     // Width & Height need to match image dimensions
