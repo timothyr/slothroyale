@@ -11,7 +11,7 @@ export class AppComponent implements AfterViewInit {
 
   private ctx: CanvasRenderingContext2D;
 
-  public ngAfterViewInit() {
+  public ngAfterViewInit(): void {
     const canvasEl: HTMLCanvasElement = this.canvas.nativeElement;
     this.ctx = canvasEl.getContext('2d');
 

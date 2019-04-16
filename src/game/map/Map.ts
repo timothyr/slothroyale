@@ -2,9 +2,10 @@ import * as box2d from '@flyover/box2d';
 import { MapBase, Settings } from '@game/core/MapBase';
 import { Input, MoveX } from '@game/core/Input';
 import { Player, PlayerMovement } from '@game/player/Player';
-import { b2Fixture, b2WorldManifold, b2Vec2, b2Atan2, b2RadToDeg } from '@flyover/box2d';
+import { b2Fixture, b2WorldManifold, b2Vec2, b2Atan2 } from '@flyover/box2d';
 
 import { g_debugDraw } from '@game/core/DebugDraw';
+import { GenerateMap } from '@game/map/map-generation/MapGenerator';
 
 export class Map extends MapBase {
 
@@ -13,17 +14,47 @@ export class Map extends MapBase {
 
     this.CreateContactListener();
 
-    this.CreateWalls();
-    this.CreateRamp();
-    // this.CreateCircles(2);
+    GenerateMap().then((map) => {
+      // Create a physics polygon for each shape
+      this.mapWidthPx = map.width;
+      this.mapHeightPx = map.height;
+      map.polygons.forEach(polyShape => this.CreatePoly(polyShape));
 
-    this.player = new Player(this.m_world);
+      this.player = new Player(this.m_world);
+      this.player.setPosition(0, this.mapHeightPx / 8);
+
+    });
   }
+
+  pixelsToMeter = 8;
+  mapWidthPx = 1280;
+  mapHeightPx = 612;
 
   player: Player;
 
   public static Create(): MapBase {
     return new Map();
+  }
+
+  public CreatePoly(polygon): void {
+    const vertices: box2d.b2Vec2[] = polygon.map(v => {
+      return new box2d.b2Vec2(
+          // Center the polygons on the map
+          (v.x / this.pixelsToMeter) - ((this.mapWidthPx / 2) / this.pixelsToMeter),
+          (v.y / -this.pixelsToMeter) - ((this.mapHeightPx / 2) / -this.pixelsToMeter)
+        );
+    });
+
+    const bd = new box2d.b2BodyDef();
+    const ground = this.m_world.CreateBody(bd);
+
+    // Polygon
+    {
+      const shape = new box2d.b2PolygonShape();
+
+      shape.Set(vertices, vertices.length);
+      ground.CreateFixture(shape, 0.0);
+    }
   }
 
   public CreateContactListener(): void {
@@ -105,9 +136,12 @@ export class Map extends MapBase {
 
   public Step(settings: Settings, input: Input): void {
 
-    this.player.handleInput(input);
+    if (this.player) {
+      this.player.handleInput(input);
 
-    g_debugDraw.DrawString(500, 500, `jump? ${this.player.canJump()}`)
+      g_debugDraw.DrawString(500, 500, `jump? ${this.player.canJump()}`);
+    }
+
 
     super.Step(settings, input);
   }

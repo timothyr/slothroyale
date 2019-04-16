@@ -1,8 +1,8 @@
 import * as box2d from '@flyover/box2d';
 import { Input, MoveX } from '@game/core/Input';
 
-const PLAYER_MIN_ANGLE = -90 - 70;
-const PLAYER_MAX_ANGLE = -90 + 70;
+const PLAYER_MIN_ANGLE = -90 - 82;//- 70;
+const PLAYER_MAX_ANGLE = -90 + 82;//+ 70;
 
 export const enum PlayerDirection {
   LEFT = -1,
@@ -140,5 +140,9 @@ export class Player {
     if (this.jumpTimer > 0) {
       this.jumpTimer--;
     }
+  }
+
+  setPosition(x, y): void {
+    this.body.SetPosition(new box2d.b2Vec2(x,y));
   }
 }
