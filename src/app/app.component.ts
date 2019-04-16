@@ -8,10 +8,8 @@ import { Main } from '@game/core/Main';
 })
 export class AppComponent implements AfterViewInit {
   @ViewChild('canvas') public canvas: ElementRef;
-  @ViewChild('debugcanvas') public debugcanvas: ElementRef;
 
   private ctx: CanvasRenderingContext2D;
-  private debugctx: CanvasRenderingContext2D;
 
   public ngAfterViewInit(): void {
     const canvasEl: HTMLCanvasElement = this.canvas.nativeElement;
