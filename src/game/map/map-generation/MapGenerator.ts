@@ -70,11 +70,7 @@ function GenerateTerrain(terrainGenerator, seed, width, height) {
     const data = new Uint8Array(len);
     const hulls = [];
     let lastHull = [];
-
-    let finished = false;
-
     let hullCount = 0;
-
     const context = terrainShape.getContext('2d');
 
     // This setting will erase instead of drawing to canvas
@@ -83,6 +79,7 @@ function GenerateTerrain(terrainGenerator, seed, width, height) {
 
     // ----------- Generate hulls from terrain -----------
 
+    let finished = false;
     while (!finished) {
 
       // In case we get stuck in infinite loop
@@ -126,7 +123,7 @@ function GenerateTerrain(terrainGenerator, seed, width, height) {
 
       // Erase the polygon from the image
       // So that we can get the next polygon
-      context.strokeStyle = 'green';
+      context.strokeStyle = 'green'; // Arbitrary color
       context.lineWidth = 5; // Draw a thick line around the polygon
       context.beginPath();
 
@@ -153,7 +150,7 @@ function GenerateTerrain(terrainGenerator, seed, width, height) {
       region.closePath();
 
       // Fill the polygon to erase it
-      context.fillStyle = `rgba(0,0,255,100)`;
+      context.fillStyle = 'green'; // Arbitrary color
       context.fill(region);
 
       shapeData = context.getImageData(0, 0, terrainShape.width, terrainShape.height);
