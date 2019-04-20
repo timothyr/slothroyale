@@ -4,7 +4,8 @@ import { MapBase, Settings } from '@game/core/MapBase';
 import { Map } from '@game/map/Map';
 import { Fps } from '@game/core/Fps';
 import { Input, MoveX, MoveY } from './Input';
-
+// import * as PIXI from '@game/render/PixiJS/pixi.min.js'
+import * as PIXI from 'pixi.js';
 export class Main {
   public m_time_last = 0;
 
@@ -36,18 +37,9 @@ export class Main {
     const canvas_2d: HTMLCanvasElement = this.m_canvas_2d = gameCanvas;
     g_debugDraw.m_ctx = this.m_ctx = this.m_canvas_2d.getContext('2d');
 
-    function resize_canvas(): void {
-      if (canvas_2d.width !==  window.innerWidth) {
-        g_camera.m_width = canvas_2d.width =  window.innerWidth;
-      }
-      if (canvas_2d.height !==  window.innerHeight) {
-        g_camera.m_height = canvas_2d.height = window.innerHeight;
-      }
-    }
-
-    window.addEventListener('resize', (e: UIEvent): void => { resize_canvas(); });
-    gameCanvas.addEventListener('orientationchange', (e: Event): void => { resize_canvas(); });
-    resize_canvas();
+    window.addEventListener('resize', (e: UIEvent): void => { this.resize_canvas(); });
+    gameCanvas.addEventListener('orientationchange', (e: Event): void => { this.resize_canvas(); });
+    this.resize_canvas();
 
     gameCanvas.addEventListener('mousemove', (e: MouseEvent): void => { this.HandleMouseMove(e); });
     gameCanvas.addEventListener('mousedown', (e: MouseEvent): void => { this.HandleMouseDown(e); });
@@ -69,6 +61,15 @@ export class Main {
   public LoadLevel(): void {
     this.map = Map.Create();
     this.HomeCamera();
+  }
+
+  public resize_canvas(): void {
+    if (this.m_canvas_2d.width !==  window.innerWidth) {
+      g_camera.m_width = this.m_canvas_2d.width =  window.innerWidth;
+    }
+    if (this.m_canvas_2d.height !==  window.innerHeight) {
+      g_camera.m_height = this.m_canvas_2d.height = window.innerHeight;
+    }
   }
 
   // --------- Simulation Loop ---------
@@ -125,7 +126,7 @@ export class Main {
 
   public HomeCamera(): void {
     g_camera.m_zoom = (this.map) ? (this.map.GetDefaultViewZoom()) : (1.0);
-    g_camera.m_center.Set(0, 20 * g_camera.m_zoom);
+    g_camera.m_center.Set(0, 0 * g_camera.m_zoom);
   }
 
   public MoveCamera(move: box2d.b2Vec2): void {

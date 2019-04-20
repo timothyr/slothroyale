@@ -64,7 +64,7 @@ export class MapBase extends box2d.b2ContactListener {
   constructor() {
       super();
 
-      const gravity: box2d.b2Vec2 = new box2d.b2Vec2(0, -10);
+      const gravity: box2d.b2Vec2 = new box2d.b2Vec2(0, -12);
       this.m_world = new box2d.b2World(gravity);
 
       this.m_mouseJoint = null;
@@ -159,7 +159,7 @@ export class MapBase extends box2d.b2ContactListener {
 
   // ---------- Mouse -----------
 
-  public MouseDown(p: box2d.b2Vec2): void {
+  public MouseDown(p: box2d.b2Vec2): boolean {
     this.m_mouseWorld.Copy(p);
 
     if (this.m_mouseJoint !== null) {
@@ -176,6 +176,8 @@ export class MapBase extends box2d.b2ContactListener {
         const inside = fixture.TestPoint(p);
         if (inside) {
           hit_fixture = fixture;
+    console.log("hit");
+
           return false; // We are done, terminate the query.
         }
       }
@@ -192,6 +194,8 @@ export class MapBase extends box2d.b2ContactListener {
       this.m_mouseJoint = this.m_world.CreateJoint(md) as box2d.b2MouseJoint;
       body.SetAwake(true);
     }
+
+    return hit_fixture;
   }
 
   public MouseUp(p: box2d.b2Vec2): void {

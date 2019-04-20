@@ -1,1 +1,13 @@
 /* You can add global styles to this file, and also import other style files */
+
+.game-canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 13;
+  // pointer-events: none;
+  opacity: 0.7;
+  display: none;
+}

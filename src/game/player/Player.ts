@@ -1,8 +1,18 @@
 import * as box2d from '@flyover/box2d';
 import { Input, MoveX } from '@game/core/Input';
+import { gfx } from '@game/graphics/Pixi';
+import * as PIXI from 'pixi.js';
+import { EventEmitter } from '@angular/core';
+import { b2Vec2 } from '@flyover/box2d';
+import { Observable } from 'rxjs';
 
 const PLAYER_MIN_ANGLE = -90 - 82;//- 70;
 const PLAYER_MAX_ANGLE = -90 + 82;//+ 70;
+
+export interface PlayerDraggingData {
+  isDragging: boolean;
+  pos: b2Vec2;
+}
 
 export const enum PlayerDirection {
   LEFT = -1,
@@ -20,6 +30,9 @@ export interface PlayerMovement {
 
 export class Player {
 
+  private clickEventEmitter: EventEmitter<PlayerDraggingData>;
+  private isDragging = false;
+  private playerSprite: PIXI.Sprite;
   body: box2d.b2Body;
   sensorFixture: box2d.b2Fixture;
   playerMovement: PlayerMovement;
@@ -57,9 +70,38 @@ export class Player {
     playerSensorFixtureDef.userData = this.playerMovement;
     this.sensorFixture = this.body.CreateFixture(playerSensorFixtureDef, 0);
 
-    this.body.SetBullet(true);
     this.body.SetFixedRotation(true);
     this.body.SetSleepingAllowed(true); // set only on players turn?
+    this.createSprite();
+
+    this.clickEventEmitter = new EventEmitter<PlayerDraggingData>();
+  }
+
+  getClickEventEmitter(): Observable<PlayerDraggingData> {
+    return this.clickEventEmitter.asObservable();
+  }
+
+  getSprite(): PIXI.Sprite {
+    return this.playerSprite;
+  }
+
+  createSprite(): void {
+    // test player sprite
+    this.playerSprite = PIXI.Sprite.from('assets/bunny.png');
+    const x = gfx.screen.width/2;
+    const y = gfx.screen.height/2;
+    console.log("seyt bunny to ",x ,y)
+    this.playerSprite.position.set(x, y);
+    this.playerSprite.anchor.set(0.5);
+    this.playerSprite.interactive = true;
+    this.playerSprite.buttonMode = true;
+
+    gfx.stage.addChild(this.playerSprite);
+  }
+
+  updateSprite(): void {
+    const worldCenter = this.body.GetWorldCenter()
+    this.playerSprite.position.set(worldCenter.x * gfx.metersToPixel, -worldCenter.y * gfx.metersToPixel);
   }
 
   handleInput(input: Input) {
@@ -110,6 +152,8 @@ export class Player {
     }
 
     if (input.jump && this.jumpTimer === 0 && this.canJump()) {
+      const debug_pos = this.body.GetPosition();
+      console.log("body pos",debug_pos.x, debug_pos.y);
       const dir: number = this.sensorFixture.GetUserData().direction;
       this.body.ApplyLinearImpulse(new box2d.b2Vec2(this.body.GetMass() * 2 * dir, this.body.GetMass() * 5), this.body.GetWorldCenter());
       this.jumpTimer = 50;

@@ -1,11 +1,13 @@
 import * as box2d from '@flyover/box2d';
 import { MapBase, Settings } from '@game/core/MapBase';
 import { Input, MoveX } from '@game/core/Input';
-import { Player, PlayerMovement } from '@game/player/Player';
-import { b2Fixture, b2WorldManifold, b2Vec2, b2Atan2 } from '@flyover/box2d';
+import { Player, PlayerMovement, PlayerDraggingData } from '@game/player/Player';
+import { b2Fixture, b2WorldManifold, b2Vec2, b2Atan2, b2AABB } from '@flyover/box2d';
 
-import { g_debugDraw } from '@game/core/DebugDraw';
 import { GenerateMap } from '@game/map/map-generation/MapGenerator';
+import { DrawPolygon } from '@game/graphics/Draw';
+import { Subscription } from 'rxjs';
+import { gfx } from '@game/graphics/Pixi';
 
 export class Map extends MapBase {
 
@@ -18,32 +20,84 @@ export class Map extends MapBase {
       // Create a physics polygon for each shape
       this.mapWidthPx = map.width;
       this.mapHeightPx = map.height;
+
       map.polygons.forEach(polyShape => this.CreatePoly(polyShape));
 
       this.player = new Player(this.m_world);
-      this.player.setPosition(0, this.mapHeightPx / 8);
+      this.player.setPosition(0, this.mapHeightPx / this.mapSizeMultiplier);
+      // this.player.getClickEventEmitter().subscribe((playerDraggingData: PlayerDraggingData) => {
+      //   this.MouseDown(pos);
+      // })
 
+      this.player.getSprite()
+        // events for drag start
+        .on('mousedown', (event) => this.onDragStart(event))
+        .on('touchstart', (event) => this.onDragStart(event))
+        // events for drag end
+        .on('mouseup', (event) => this.onDragEnd(event))
+        .on('mouseupoutside', (event) => this.onDragEnd(event))
+        .on('touchend', (event) => this.onDragEnd(event))
+        .on('touchendoutside', (event) => this.onDragEnd(event))
+        // events for drag move
+        .on('mousemove', (event) => this.onDragMove(event))
+        .on('touchmove', (event) => this.onDragMove(event));
     });
   }
 
-  pixelsToMeter = 8;
+  public metersToPixel = 20;
+
+  mapSizeMultiplier = 8;
   mapWidthPx = 1280;
   mapHeightPx = 612;
 
-  player: Player;
+  player: Player = null;
+  playerClickListener: Subscription;
 
   public static Create(): MapBase {
     return new Map();
   }
 
+  
+  onDragStart(event): void {
+    this.player.getSprite().alpha = 0.5;
+    this.MouseDown(this.screenToWorldPos(event));
+  }
+
+  onDragEnd(event): void {
+    this.player.getSprite().alpha = 1;
+    this.MouseUp(this.screenToWorldPos(event));
+  }
+
+  onDragMove(event): void {
+    this.MouseMove(this.screenToWorldPos(event));
+  }
+
+  screenToWorldPos(event): b2Vec2 {
+    const x = (event.data.global.x - gfx.stage.position.x) / gfx.metersToPixel;
+    const y = (event.data.global.y - gfx.stage.position.y) / gfx.metersToPixel;
+    return new b2Vec2(x, -y);
+  }
+
   public CreatePoly(polygon): void {
+
+    const pixiVertices: number[] = [];
+
     const vertices: box2d.b2Vec2[] = polygon.map(v => {
-      return new box2d.b2Vec2(
-          // Center the polygons on the map
-          (v.x / this.pixelsToMeter) - ((this.mapWidthPx / 2) / this.pixelsToMeter),
-          (v.y / -this.pixelsToMeter) - ((this.mapHeightPx / 2) / -this.pixelsToMeter)
-        );
+      // Center the polygons on the map
+      const x = (v.x / this.mapSizeMultiplier) - ((this.mapWidthPx / 2) / this.mapSizeMultiplier);
+      const y = (v.y / -this.mapSizeMultiplier) - ((this.mapHeightPx / 2) / -this.mapSizeMultiplier);
+
+      pixiVertices.push(x * this.metersToPixel);
+      pixiVertices.push(-y * this.metersToPixel);
+
+      return new box2d.b2Vec2(x, y);
     });
+
+    // pixi
+
+    DrawPolygon(pixiVertices);
+
+    // box2d
 
     const bd = new box2d.b2BodyDef();
     const ground = this.m_world.CreateBody(bd);
@@ -138,12 +192,31 @@ export class Map extends MapBase {
 
     if (this.player) {
       this.player.handleInput(input);
-
-      g_debugDraw.DrawString(500, 500, `jump? ${this.player.canJump()}`);
+      this.player.updateSprite();
     }
 
-
     super.Step(settings, input);
+  }
+
+  public MouseDown(p: box2d.b2Vec2): boolean {
+    const hit_fixture = super.MouseDown(p);
+
+    // if we didnt hit a fixture, create a circle
+    if (!hit_fixture) {
+      const bd = new box2d.b2BodyDef();
+      bd.type = box2d.b2BodyType.b2_staticBody;
+      bd.position.Copy(p);
+      const body = this.m_world.CreateBody(bd);
+      const shape = new box2d.b2CircleShape();
+      // shape.m_p.Set(0, 10);
+      shape.m_radius = 4;
+      const f = body.CreateFixture(shape, 0.5);
+
+      // const aabb: b2AABB = new b2AABB();
+      // shape.ComputeAABB(aabb, p, 0);
+    }
+ 
+    return hit_fixture;
   }
 
   public CreateCircles(numCircles: number): void {

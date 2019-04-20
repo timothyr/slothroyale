@@ -19,9 +19,9 @@
 import * as box2d from '@flyover/box2d';
 
 export class Camera {
-  public readonly m_center: box2d.b2Vec2 = new box2d.b2Vec2(0, 20);
+  public readonly m_center: box2d.b2Vec2 = new box2d.b2Vec2(0, 0);
   ///public readonly m_roll: box2d.b2Rot = new box2d.b2Rot(box2d.b2DegToRad(0));
-  public m_extent: number = 25;
+  public m_extent: number = 27.5;
   public m_zoom: number = 1;
   public m_width: number = 1280;
   public m_height: number = 800;
