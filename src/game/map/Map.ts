@@ -2,12 +2,16 @@ import * as box2d from '@flyover/box2d';
 import { MapBase, Settings } from '@game/core/MapBase';
 import { Input, MoveX } from '@game/core/Input';
 import { Player, PlayerMovement, PlayerDraggingData } from '@game/player/Player';
-import { b2Fixture, b2WorldManifold, b2Vec2, b2Atan2, b2AABB } from '@flyover/box2d';
+import { b2Fixture, b2WorldManifold, b2Vec2, b2Atan2, b2AABB, b2PolygonShape } from '@flyover/box2d';
 
 import { GenerateMap } from '@game/map/map-generation/MapGenerator';
 import { DrawPolygon } from '@game/graphics/Draw';
 import { Subscription } from 'rxjs';
 import { gfx } from '@game/graphics/Pixi';
+// import * as clipperLib from 'js-angusj-clipper/web'; // es6 / typescript
+import * as clipperLib from '@game/map/map-generation/js-angusj-clipper'; // es6 / typescript
+import * as hxGeom from '@game/map/map-generation/hxGeomAlgo/hxGeomAlgo.js';
+
 
 export class Map extends MapBase {
 
@@ -15,6 +19,13 @@ export class Map extends MapBase {
     super();
 
     this.CreateContactListener();
+
+    clipperLib.loadNativeClipperLibInstanceAsync(
+      // let it autodetect which one to use, but also available WasmOnly and AsmJsOnly
+      clipperLib.NativeClipperLibRequestedFormat.WasmWithAsmJsFallback
+    ).then((clipper) => {
+      this.mapClipper = clipper;
+    });
 
     GenerateMap().then((map) => {
       // Create a physics polygon for each shape
@@ -49,6 +60,7 @@ export class Map extends MapBase {
   mapSizeMultiplier = 8;
   mapWidthPx = 1280;
   mapHeightPx = 612;
+  mapClipper: any;
 
   player: Player = null;
   playerClickListener: Subscription;
@@ -57,7 +69,7 @@ export class Map extends MapBase {
     return new Map();
   }
 
-  
+
   onDragStart(event): void {
     this.player.getSprite().alpha = 0.5;
     this.MouseDown(this.screenToWorldPos(event));
@@ -203,19 +215,94 @@ export class Map extends MapBase {
 
     // if we didnt hit a fixture, create a circle
     if (!hit_fixture) {
-      const bd = new box2d.b2BodyDef();
-      bd.type = box2d.b2BodyType.b2_staticBody;
-      bd.position.Copy(p);
-      const body = this.m_world.CreateBody(bd);
-      const shape = new box2d.b2CircleShape();
-      // shape.m_p.Set(0, 10);
-      shape.m_radius = 4;
-      const f = body.CreateFixture(shape, 0.5);
+      // const bd = new box2d.b2BodyDef();
+      // bd.type = box2d.b2BodyType.b2_staticBody;
+      // bd.position.Copy(p);
+      // const body = this.m_world.CreateBody(bd);
+      // const shape = new box2d.b2CircleShape();
+      // // shape.m_p.Set(0, 10);
+      // shape.m_radius = 4;
+      // const f = body.CreateFixture(shape, 0.5);
 
-      // const aabb: b2AABB = new b2AABB();
-      // shape.ComputeAABB(aabb, p, 0);
+
+      // this.QueryAABB(null, aabb, (fixture: b2Fixture): boolean => { out.push(fixture); return true; });
     }
- 
+
+    const aabb: b2AABB = new b2AABB();
+    aabb.lowerBound.Copy(new b2Vec2(p.x - 1, p.y - 1));
+    aabb.upperBound.Copy(new b2Vec2(p.x + 1, p.y + 1));
+
+    const poly1 = [{ x: p.x - 1, y: p.y - 1 }, { x: p.x - 1, y: p.y + 1 }, { x: p.x + 1, y: p.y + 1 }, { x: p.x + 1, y: p.y - 1 }];
+
+    const fixtures: b2Fixture[] = this.m_world.QueryAllAABB(aabb);
+
+    const vertexMultiplier = 100000;
+
+    console.log('[poly1 before', poly1);
+
+    poly1.map((v => {
+      v.x = Math.round(v.x * vertexMultiplier);
+      v.y = Math.round(v.y * vertexMultiplier);
+    }));
+
+    // clip ground
+    fixtures.forEach((fixture: b2Fixture) => {
+
+      // if (fixture.m_shape === b2PolygonShape)
+      const shape: any = fixture.m_shape;
+      const centroid = shape.m_centroid;
+      const fixtureVertices = shape.m_vertices;
+      console.log('vertices', fixtureVertices);
+
+      fixtureVertices.map((v => {
+        v.x = Math.round(v.x * vertexMultiplier);
+        v.y = Math.round(v.y * vertexMultiplier);
+      }));
+
+      // get their union
+      const polyResult = this.mapClipper.clipToPaths({
+        clipType: clipperLib.ClipType.Difference,
+        subjectInputs: [{ data: fixtureVertices, closed: true }],
+        clipInputs: [{ data: poly1, closed: true }],
+        subjectFillType: clipperLib.PolyFillType.NonZero,
+        clipFillType: clipperLib.PolyFillType.NonZero,
+        // strictlySimple: true
+      });
+
+      polyResult.forEach(poly => {
+
+        // box2d
+        const bd = new box2d.b2BodyDef();
+        const ground = this.m_world.CreateBody(bd);
+
+        poly.map((v => {
+          v.x /= vertexMultiplier;
+          v.y /= vertexMultiplier;
+        }));
+
+        // poly = hxGeom.hxGeomAlgo.RamerDouglasPeucker.simplify(poly);
+        poly = hxGeom.hxGeomAlgo.SnoeyinkKeil.decomposePoly(poly);
+
+        poly.forEach(p => {
+          console.log('poly result', p);
+
+          // Polygon
+          {
+            const shape = new box2d.b2PolygonShape();
+
+            shape.Set(p, p.length);
+            // shape.m_centroid.Copy(centroid);
+            ground.CreateFixture(shape, 0.0);
+          }
+        });
+      });
+    });
+
+    // fixtures.forEach((fixture: b2Fixture) => console.log(fixture));
+
+    // Destroy all bodies
+    fixtures.forEach((fixture: b2Fixture) => this.m_world.DestroyBody(fixture.GetBody()));
+
     return hit_fixture;
   }
 
