@@ -271,9 +271,7 @@ export class Map extends MapBase {
 
       polyResult.forEach(poly => {
 
-        // box2d
-        const bd = new box2d.b2BodyDef();
-        const ground = this.m_world.CreateBody(bd);
+        
 
         poly.map((v => {
           v.x /= vertexMultiplier;
@@ -285,6 +283,10 @@ export class Map extends MapBase {
 
         poly.forEach(p => {
           console.log('poly result', p);
+
+          // box2d
+          const bd = new box2d.b2BodyDef();
+          const ground = this.m_world.CreateBody(bd);
 
           // Polygon
           {
