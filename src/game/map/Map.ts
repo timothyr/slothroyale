@@ -8,9 +8,8 @@ import { GenerateMap } from '@game/map/map-generation/MapGenerator';
 import { DrawPolygon } from '@game/graphics/Draw';
 import { Subscription } from 'rxjs';
 import { gfx } from '@game/graphics/Pixi';
+import { DestroyGround, DestroyedGroundResult } from './DestroyGround';
 // import * as clipperLib from 'js-angusj-clipper/web'; // es6 / typescript
-import * as clipperLib from '@game/map/map-generation/js-angusj-clipper'; // es6 / typescript
-import * as hxGeom from '@game/map/map-generation/hxGeomAlgo/hxGeomAlgo.js';
 
 
 export class Map extends MapBase {
@@ -20,19 +19,12 @@ export class Map extends MapBase {
 
     this.CreateContactListener();
 
-    clipperLib.loadNativeClipperLibInstanceAsync(
-      // let it autodetect which one to use, but also available WasmOnly and AsmJsOnly
-      clipperLib.NativeClipperLibRequestedFormat.WasmWithAsmJsFallback
-    ).then((clipper) => {
-      this.mapClipper = clipper;
-    });
-
     GenerateMap().then((map) => {
       // Create a physics polygon for each shape
       this.mapWidthPx = map.width;
       this.mapHeightPx = map.height;
 
-      map.polygons.forEach(polyShape => this.CreatePoly(polyShape));
+      map.polygons.forEach(polyShape => this.CreateMapPoly(polyShape));
 
       this.player = new Player(this.m_world);
       this.player.setPosition(0, this.mapHeightPx / this.mapSizeMultiplier);
@@ -90,19 +82,25 @@ export class Map extends MapBase {
     return new b2Vec2(x, -y);
   }
 
-  public CreatePoly(polygon): void {
-
-    const pixiVertices: number[] = [];
-
+  private CreateMapPoly(polygon: b2Vec2[]): void {
     const vertices: box2d.b2Vec2[] = polygon.map(v => {
       // Center the polygons on the map
       const x = (v.x / this.mapSizeMultiplier) - ((this.mapWidthPx / 2) / this.mapSizeMultiplier);
       const y = (v.y / -this.mapSizeMultiplier) - ((this.mapHeightPx / 2) / -this.mapSizeMultiplier);
 
-      pixiVertices.push(x * this.metersToPixel);
-      pixiVertices.push(-y * this.metersToPixel);
-
       return new box2d.b2Vec2(x, y);
+    });
+
+    this.CreatePoly(vertices);
+  }
+
+  public CreatePoly(polygon: b2Vec2[]): void {
+
+    const pixiVertices: number[] = [];
+
+    polygon.forEach((v: b2Vec2) => {
+      pixiVertices.push(v.x * this.metersToPixel);
+      pixiVertices.push(-v.y * this.metersToPixel);
     });
 
     // pixi
@@ -118,87 +116,12 @@ export class Map extends MapBase {
     {
       const shape = new box2d.b2PolygonShape();
 
-      shape.Set(vertices, vertices.length);
+      shape.Set(polygon, polygon.length);
       ground.CreateFixture(shape, 0.0);
     }
   }
 
-  public CreateContactListener(): void {
-    const listener = new box2d.b2ContactListener();
-    listener.BeginContact = (contact) => {
-        const fixtureA: b2Fixture = contact.GetFixtureA();
-        const fixtureB: b2Fixture = contact.GetFixtureB();
 
-        const playerMovementA: PlayerMovement = fixtureA.GetUserData() || null;
-        const playerMovementB: PlayerMovement = fixtureB.GetUserData() || null;
-
-        if (playerMovementA) {
-          this.player.addNumFootContacts(1);
-        }
-
-        if (playerMovementB) {
-          this.player.addNumFootContacts(1);
-        }
-    };
-
-    listener.EndContact = (contact) => {
-      const fixtureA: b2Fixture = contact.GetFixtureA();
-      const fixtureB: b2Fixture = contact.GetFixtureB();
-
-      const playerMovementA: PlayerMovement = fixtureA.GetUserData() || null;
-      const playerMovementB: PlayerMovement = fixtureB.GetUserData() || null;
-
-      if (playerMovementA) {
-        this.player.addNumFootContacts(-1);
-      }
-
-      if (playerMovementB) {
-        this.player.addNumFootContacts(-1);
-      }
-    };
-    // listener.PostSolve = function(contact, impulse) {
-    // }
-
-    listener.PreSolve = (contact, oldManifold) => {
-      const fixtureA: b2Fixture = contact.GetFixtureA();
-      const fixtureB: b2Fixture = contact.GetFixtureB();
-
-      const playerMovementA: PlayerMovement = fixtureA.GetUserData() || null;
-      const playerMovementB: PlayerMovement = fixtureB.GetUserData() || null;
-
-      const worldManifold: b2WorldManifold = new b2WorldManifold();
-      contact.GetWorldManifold(worldManifold);
-
-      let surfaceVelocityModifier = 0;
-
-      const getForce = (playerMovement: PlayerMovement, localNormal: b2Vec2) => {
-        const angle = b2Atan2(localNormal.y, localNormal.x);
-        // Only move if the hill isn't too steep
-        if (playerMovement.minAngle < angle && angle < playerMovement.maxAngle
-          // Let the player move down any hill
-          || playerMovement.moveX === MoveX.RIGHT && playerMovement.minAngle > angle
-          || playerMovement.moveX === MoveX.LEFT &&  angle > playerMovement.maxAngle) {
-          // Add velocity
-          surfaceVelocityModifier += playerMovement.velocity;
-        }
-      };
-
-      if (playerMovementA) {
-        const localNormal = fixtureA.GetBody().GetLocalVector(worldManifold.normal, new b2Vec2());
-        getForce(playerMovementA, localNormal);
-      }
-
-      if (playerMovementB) {
-        const negWorldNormal = new b2Vec2(-worldManifold.normal.x, -worldManifold.normal.y);
-        const localNormal = fixtureB.GetBody().GetLocalVector(negWorldNormal, new b2Vec2());
-        getForce(playerMovementB, localNormal);
-      }
-
-      contact.SetTangentSpeed(surfaceVelocityModifier);
-    };
-
-    this.m_world.SetContactListener(listener);
-  }
 
   public Step(settings: Settings, input: Input): void {
 
@@ -221,89 +144,28 @@ export class Map extends MapBase {
       // const body = this.m_world.CreateBody(bd);
       // const shape = new box2d.b2CircleShape();
       // // shape.m_p.Set(0, 10);
+      // // shape.
       // shape.m_radius = 4;
       // const f = body.CreateFixture(shape, 0.5);
 
 
       // this.QueryAABB(null, aabb, (fixture: b2Fixture): boolean => { out.push(fixture); return true; });
+
+      const aabb: b2AABB = new b2AABB();
+      aabb.lowerBound.Copy(new b2Vec2(p.x - 1, p.y - 1));
+      aabb.upperBound.Copy(new b2Vec2(p.x + 1, p.y + 1));
+
+      const poly1: any[] = [{ x: p.x - 1, y: p.y - 1 }, { x: p.x - 1, y: p.y + 1 }, { x: p.x + 1, y: p.y + 1 }, { x: p.x + 1, y: p.y - 1 }];
+
+      const res: DestroyedGroundResult = DestroyGround(aabb, poly1, this.m_world);
+
+      // Create the new ground
+      res.polygonsToAdd.forEach((poly: b2Vec2[]) => this.CreatePoly(poly));
+
+      // Destroy the old ground
+      res.fixturesToDelete.forEach((fixture: b2Fixture) => this.m_world.DestroyBody(fixture.GetBody()));
     }
 
-    const aabb: b2AABB = new b2AABB();
-    aabb.lowerBound.Copy(new b2Vec2(p.x - 1, p.y - 1));
-    aabb.upperBound.Copy(new b2Vec2(p.x + 1, p.y + 1));
-
-    const poly1 = [{ x: p.x - 1, y: p.y - 1 }, { x: p.x - 1, y: p.y + 1 }, { x: p.x + 1, y: p.y + 1 }, { x: p.x + 1, y: p.y - 1 }];
-
-    const fixtures: b2Fixture[] = this.m_world.QueryAllAABB(aabb);
-
-    const vertexMultiplier = 100000;
-
-    console.log('[poly1 before', poly1);
-
-    poly1.map((v => {
-      v.x = Math.round(v.x * vertexMultiplier);
-      v.y = Math.round(v.y * vertexMultiplier);
-    }));
-
-    // clip ground
-    fixtures.forEach((fixture: b2Fixture) => {
-
-      // if (fixture.m_shape === b2PolygonShape)
-      const shape: any = fixture.m_shape;
-      const centroid = shape.m_centroid;
-      const fixtureVertices = shape.m_vertices;
-      console.log('vertices', fixtureVertices);
-
-      fixtureVertices.map((v => {
-        v.x = Math.round(v.x * vertexMultiplier);
-        v.y = Math.round(v.y * vertexMultiplier);
-      }));
-
-      // get their union
-      const polyResult = this.mapClipper.clipToPaths({
-        clipType: clipperLib.ClipType.Difference,
-        subjectInputs: [{ data: fixtureVertices, closed: true }],
-        clipInputs: [{ data: poly1, closed: true }],
-        subjectFillType: clipperLib.PolyFillType.NonZero,
-        clipFillType: clipperLib.PolyFillType.NonZero,
-        // strictlySimple: true
-      });
-
-      polyResult.forEach(poly => {
-
-        
-
-        poly.map((v => {
-          v.x /= vertexMultiplier;
-          v.y /= vertexMultiplier;
-        }));
-
-        // poly = hxGeom.hxGeomAlgo.RamerDouglasPeucker.simplify(poly);
-        poly = hxGeom.hxGeomAlgo.SnoeyinkKeil.decomposePoly(poly);
-
-        poly.forEach(p => {
-          console.log('poly result', p);
-
-          // box2d
-          const bd = new box2d.b2BodyDef();
-          const ground = this.m_world.CreateBody(bd);
-
-          // Polygon
-          {
-            const shape = new box2d.b2PolygonShape();
-
-            shape.Set(p, p.length);
-            // shape.m_centroid.Copy(centroid);
-            ground.CreateFixture(shape, 0.0);
-          }
-        });
-      });
-    });
-
-    // fixtures.forEach((fixture: b2Fixture) => console.log(fixture));
-
-    // Destroy all bodies
-    fixtures.forEach((fixture: b2Fixture) => this.m_world.DestroyBody(fixture.GetBody()));
 
     return hit_fixture;
   }
@@ -408,5 +270,84 @@ export class Map extends MapBase {
         ground.CreateFixture(shape, 0.0);
       }
     }
+  }
+
+  // --------- Collision -------------
+
+  public CreateContactListener(): void {
+    const listener = new box2d.b2ContactListener();
+    listener.BeginContact = (contact) => {
+        const fixtureA: b2Fixture = contact.GetFixtureA();
+        const fixtureB: b2Fixture = contact.GetFixtureB();
+
+        const playerMovementA: PlayerMovement = fixtureA.GetUserData() || null;
+        const playerMovementB: PlayerMovement = fixtureB.GetUserData() || null;
+
+        if (playerMovementA) {
+          this.player.addNumFootContacts(1);
+        }
+
+        if (playerMovementB) {
+          this.player.addNumFootContacts(1);
+        }
+    };
+
+    listener.EndContact = (contact) => {
+      const fixtureA: b2Fixture = contact.GetFixtureA();
+      const fixtureB: b2Fixture = contact.GetFixtureB();
+
+      const playerMovementA: PlayerMovement = fixtureA.GetUserData() || null;
+      const playerMovementB: PlayerMovement = fixtureB.GetUserData() || null;
+
+      if (playerMovementA) {
+        this.player.addNumFootContacts(-1);
+      }
+
+      if (playerMovementB) {
+        this.player.addNumFootContacts(-1);
+      }
+    };
+    // listener.PostSolve = function(contact, impulse) {
+    // }
+
+    listener.PreSolve = (contact, oldManifold) => {
+      const fixtureA: b2Fixture = contact.GetFixtureA();
+      const fixtureB: b2Fixture = contact.GetFixtureB();
+
+      const playerMovementA: PlayerMovement = fixtureA.GetUserData() || null;
+      const playerMovementB: PlayerMovement = fixtureB.GetUserData() || null;
+
+      const worldManifold: b2WorldManifold = new b2WorldManifold();
+      contact.GetWorldManifold(worldManifold);
+
+      let surfaceVelocityModifier = 0;
+
+      const getForce = (playerMovement: PlayerMovement, localNormal: b2Vec2) => {
+        const angle = b2Atan2(localNormal.y, localNormal.x);
+        // Only move if the hill isn't too steep
+        if (playerMovement.minAngle < angle && angle < playerMovement.maxAngle
+          // Let the player move down any hill
+          || playerMovement.moveX === MoveX.RIGHT && playerMovement.minAngle > angle
+          || playerMovement.moveX === MoveX.LEFT &&  angle > playerMovement.maxAngle) {
+          // Add velocity
+          surfaceVelocityModifier += playerMovement.velocity;
+        }
+      };
+
+      if (playerMovementA) {
+        const localNormal = fixtureA.GetBody().GetLocalVector(worldManifold.normal, new b2Vec2());
+        getForce(playerMovementA, localNormal);
+      }
+
+      if (playerMovementB) {
+        const negWorldNormal = new b2Vec2(-worldManifold.normal.x, -worldManifold.normal.y);
+        const localNormal = fixtureB.GetBody().GetLocalVector(negWorldNormal, new b2Vec2());
+        getForce(playerMovementB, localNormal);
+      }
+
+      contact.SetTangentSpeed(surfaceVelocityModifier);
+    };
+
+    this.m_world.SetContactListener(listener);
   }
 }

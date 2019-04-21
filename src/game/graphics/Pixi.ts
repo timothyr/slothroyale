@@ -1,7 +1,5 @@
 import * as PIXI from 'pixi.js';
 import { g_camera } from '@game/core/DebugDraw';
-import { b2Vec2 } from '@flyover/box2d';
-
 
 export class PixiGraphics extends PIXI.Application {
     public metersToPixel = 20;
