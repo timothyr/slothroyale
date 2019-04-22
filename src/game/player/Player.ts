@@ -5,6 +5,7 @@ import * as PIXI from 'pixi.js';
 import { EventEmitter } from '@angular/core';
 import { b2Vec2 } from '@flyover/box2d';
 import { Observable } from 'rxjs';
+import { UserData, ObjectType } from '@game/object/UserData';
 
 const PLAYER_MIN_ANGLE = -90 - 82;//- 70;
 const PLAYER_MAX_ANGLE = -90 + 82;//+ 70;
@@ -19,7 +20,7 @@ export const enum PlayerDirection {
   RIGHT = 1
 }
 
-export interface PlayerMovement {
+export interface PlayerMovement extends UserData {
   minAngle: number;
   maxAngle: number;
   velocity: number;
@@ -54,6 +55,7 @@ export class Player {
     circle.m_radius = 0.5;
 
     this.playerMovement = {
+      objectType: ObjectType.PLAYER,
       minAngle: box2d.b2DegToRad(PLAYER_MIN_ANGLE),
       maxAngle: box2d.b2DegToRad(PLAYER_MAX_ANGLE),
       velocity: 0,

@@ -2,13 +2,15 @@ import * as box2d from '@flyover/box2d';
 import { MapBase, Settings } from '@game/core/MapBase';
 import { Input, MoveX } from '@game/core/Input';
 import { Player, PlayerMovement, PlayerDraggingData } from '@game/player/Player';
-import { b2Fixture, b2WorldManifold, b2Vec2, b2Atan2, b2AABB, b2PolygonShape } from '@flyover/box2d';
+import { b2Fixture, b2WorldManifold, b2Vec2, b2Atan2, b2AABB, b2PolygonShape, b2Contact } from '@flyover/box2d';
 
 import { GenerateMap } from '@game/map/map-generation/MapGenerator';
 import { DrawPolygon } from '@game/graphics/Draw';
 import { Subscription } from 'rxjs';
 import { gfx } from '@game/graphics/Pixi';
 import { DestroyGround, DestroyedGroundResult } from './DestroyGround';
+import { UserData, ObjectType } from '@game/object/UserData';
+import { playerPreSolve, playerEndContact, playerBeginContact } from '@game/player/ContactListener';
 // import * as clipperLib from 'js-angusj-clipper/web'; // es6 / typescript
 
 
@@ -276,76 +278,39 @@ export class Map extends MapBase {
 
   public CreateContactListener(): void {
     const listener = new box2d.b2ContactListener();
-    listener.BeginContact = (contact) => {
-        const fixtureA: b2Fixture = contact.GetFixtureA();
-        const fixtureB: b2Fixture = contact.GetFixtureB();
-
-        const playerMovementA: PlayerMovement = fixtureA.GetUserData() || null;
-        const playerMovementB: PlayerMovement = fixtureB.GetUserData() || null;
-
-        if (playerMovementA) {
-          this.player.addNumFootContacts(1);
-        }
-
-        if (playerMovementB) {
-          this.player.addNumFootContacts(1);
-        }
-    };
-
-    listener.EndContact = (contact) => {
+    listener.BeginContact = (contact: b2Contact) => {
       const fixtureA: b2Fixture = contact.GetFixtureA();
       const fixtureB: b2Fixture = contact.GetFixtureB();
 
-      const playerMovementA: PlayerMovement = fixtureA.GetUserData() || null;
-      const playerMovementB: PlayerMovement = fixtureB.GetUserData() || null;
+      const userDataA: UserData = fixtureA.GetUserData() || null;
+      const userDataB: UserData = fixtureB.GetUserData() || null;
 
-      if (playerMovementA) {
-        this.player.addNumFootContacts(-1);
-      }
-
-      if (playerMovementB) {
-        this.player.addNumFootContacts(-1);
-      }
+      const playerContactChange = playerBeginContact(contact, fixtureA, fixtureB, userDataA, userDataB);
+      this.player.addNumFootContacts(playerContactChange);
     };
+
+    listener.EndContact = (contact: b2Contact) => {
+      const fixtureA: b2Fixture = contact.GetFixtureA();
+      const fixtureB: b2Fixture = contact.GetFixtureB();
+
+      const userDataA: UserData = fixtureA.GetUserData() || null;
+      const userDataB: UserData = fixtureB.GetUserData() || null;
+
+      const playerContactChange = playerEndContact(contact, fixtureA, fixtureB, userDataA, userDataB);
+      this.player.addNumFootContacts(playerContactChange);
+    };
+
     // listener.PostSolve = function(contact, impulse) {
     // }
 
-    listener.PreSolve = (contact, oldManifold) => {
+    listener.PreSolve = (contact: b2Contact, oldManifold) => {
       const fixtureA: b2Fixture = contact.GetFixtureA();
       const fixtureB: b2Fixture = contact.GetFixtureB();
 
-      const playerMovementA: PlayerMovement = fixtureA.GetUserData() || null;
-      const playerMovementB: PlayerMovement = fixtureB.GetUserData() || null;
+      const userDataA: UserData = fixtureA.GetUserData() || null;
+      const userDataB: UserData = fixtureB.GetUserData() || null;
 
-      const worldManifold: b2WorldManifold = new b2WorldManifold();
-      contact.GetWorldManifold(worldManifold);
-
-      let surfaceVelocityModifier = 0;
-
-      const getForce = (playerMovement: PlayerMovement, localNormal: b2Vec2) => {
-        const angle = b2Atan2(localNormal.y, localNormal.x);
-        // Only move if the hill isn't too steep
-        if (playerMovement.minAngle < angle && angle < playerMovement.maxAngle
-          // Let the player move down any hill
-          || playerMovement.moveX === MoveX.RIGHT && playerMovement.minAngle > angle
-          || playerMovement.moveX === MoveX.LEFT &&  angle > playerMovement.maxAngle) {
-          // Add velocity
-          surfaceVelocityModifier += playerMovement.velocity;
-        }
-      };
-
-      if (playerMovementA) {
-        const localNormal = fixtureA.GetBody().GetLocalVector(worldManifold.normal, new b2Vec2());
-        getForce(playerMovementA, localNormal);
-      }
-
-      if (playerMovementB) {
-        const negWorldNormal = new b2Vec2(-worldManifold.normal.x, -worldManifold.normal.y);
-        const localNormal = fixtureB.GetBody().GetLocalVector(negWorldNormal, new b2Vec2());
-        getForce(playerMovementB, localNormal);
-      }
-
-      contact.SetTangentSpeed(surfaceVelocityModifier);
+      playerPreSolve(contact, fixtureA, fixtureB, userDataA, userDataB);
     };
 
     this.m_world.SetContactListener(listener);
