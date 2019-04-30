@@ -19,21 +19,23 @@ export class Map extends MapBase {
   constructor() {
     super();
 
+    // Create contact listener for the world
     this.CreateContactListener();
 
+    // Generate the map
     GenerateMap().then((map) => {
       // Create a physics polygon for each shape
       this.mapWidthPx = map.width;
       this.mapHeightPx = map.height;
 
+      // Create all ground polygons
       map.polygons.forEach(polyShape => this.CreateMapPoly(polyShape));
 
+      // Create player
       this.player = new Player(this.m_world);
       this.player.setPosition(0, this.mapHeightPx / this.mapSizeMultiplier);
-      // this.player.getClickEventEmitter().subscribe((playerDraggingData: PlayerDraggingData) => {
-      //   this.MouseDown(pos);
-      // })
 
+      // Set eventhandlers for player
       this.player.getSprite()
         // events for drag start
         .on('mousedown', (event) => this.onDragStart(event))
@@ -84,6 +86,10 @@ export class Map extends MapBase {
     return new b2Vec2(x, -y);
   }
 
+  /**
+   * Creates ground polygons that are sized based on map size multiplier
+   * @param polygon Ground polygon to create
+   */
   private CreateMapPoly(polygon: b2Vec2[]): void {
     const vertices: box2d.b2Vec2[] = polygon.map(v => {
       // Center the polygons on the map
@@ -93,10 +99,17 @@ export class Map extends MapBase {
       return new box2d.b2Vec2(x, y);
     });
 
-    this.CreatePoly(vertices);
+    // Create the ground
+    this.CreateGroundPoly(vertices);
   }
 
-  public CreatePoly(polygon: b2Vec2[]): void {
+  /**
+   * Creates ground polygons for the map
+   * @param polygon Ground polygon to create
+   */
+  public CreateGroundPoly(polygon: b2Vec2[]): void {
+
+    // Pixi Graphics
 
     const pixiVertices: number[] = [];
 
@@ -105,26 +118,35 @@ export class Map extends MapBase {
       pixiVertices.push(-v.y * this.metersToPixel);
     });
 
-    // pixi
-
     DrawPolygon(pixiVertices);
 
-    // box2d
+    // Box2D Physics
 
     const bd = new box2d.b2BodyDef();
     const ground = this.m_world.CreateBody(bd);
 
-    // Polygon
+    // Generate Polygon
     {
+      // Set shape
       const shape = new box2d.b2PolygonShape();
-
       shape.Set(polygon, polygon.length);
-      ground.CreateFixture(shape, 0.0);
+
+      // Set UserData to ground
+      const groundUserData: UserData = {objectType: ObjectType.GROUND};
+
+      // Create ground fixture
+      const groundFixtureDef = new box2d.b2FixtureDef();
+      groundFixtureDef.shape = shape;
+      groundFixtureDef.userData = groundUserData;
+      ground.CreateFixture(groundFixtureDef, 0);
     }
   }
 
-
-
+  /**
+   * Step is called every frame, 60 frames per second
+   * @param settings Deprecated
+   * @param input Input from Main
+   */
   public Step(settings: Settings, input: Input): void {
 
     if (this.player) {
@@ -136,23 +158,13 @@ export class Map extends MapBase {
   }
 
   public MouseDown(p: box2d.b2Vec2): boolean {
+    // Pick up Dynamic bodies
     const hit_fixture = super.MouseDown(p);
 
-    // if we didnt hit a fixture, create a circle
+    // If we didn't hit a body, destroy ground
     if (!hit_fixture) {
-      // const bd = new box2d.b2BodyDef();
-      // bd.type = box2d.b2BodyType.b2_staticBody;
-      // bd.position.Copy(p);
-      // const body = this.m_world.CreateBody(bd);
-      // const shape = new box2d.b2CircleShape();
-      // // shape.m_p.Set(0, 10);
-      // // shape.
-      // shape.m_radius = 4;
-      // const f = body.CreateFixture(shape, 0.5);
 
-
-      // this.QueryAABB(null, aabb, (fixture: b2Fixture): boolean => { out.push(fixture); return true; });
-
+      // Testing: Destroy 2x2 block of ground on mouse press
       const aabb: b2AABB = new b2AABB();
       aabb.lowerBound.Copy(new b2Vec2(p.x - 1, p.y - 1));
       aabb.upperBound.Copy(new b2Vec2(p.x + 1, p.y + 1));
@@ -162,12 +174,11 @@ export class Map extends MapBase {
       const res: DestroyedGroundResult = DestroyGround(aabb, poly1, this.m_world);
 
       // Create the new ground
-      res.polygonsToAdd.forEach((poly: b2Vec2[]) => this.CreatePoly(poly));
+      res.polygonsToAdd.forEach((poly: b2Vec2[]) => this.CreateGroundPoly(poly));
 
       // Destroy the old ground
       res.fixturesToDelete.forEach((fixture: b2Fixture) => this.m_world.DestroyBody(fixture.GetBody()));
     }
-
 
     return hit_fixture;
   }

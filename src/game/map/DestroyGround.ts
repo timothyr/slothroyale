@@ -1,6 +1,7 @@
 import { b2AABB, b2Vec2, b2Fixture } from '@flyover/box2d';
 import * as hxGeom from '@game/map/map-generation/hxGeomAlgo/hxGeomAlgo.js';
 import * as clipperLib from '@game/map/map-generation/js-angusj-clipper'; // es6 / typescript
+import { UserData, ObjectType } from '@game/object/UserData';
 
 let mapClipper;
 const vertexMultiplier = 100000;
@@ -45,11 +46,21 @@ export function DestroyGround(aabb: b2AABB, polygon: b2Vec2[], m_world): Destroy
   // Get list of fixtures in the area of polygon
   const fixtures: b2Fixture[] = m_world.QueryAllAABB(aabb);
   const polygonsToAdd: b2Vec2[][] = [];
+  const fixturesToDelete: b2Fixture[] = [];
 
   // Iterate over all fixtures that matched the intersection of polygon
   fixtures.forEach((fixture: b2Fixture) => {
 
     // TODO check userdata of fixture and only continue if it is ground
+    const userData: UserData = fixture.GetUserData() || null;
+    if (!userData || userData.objectType !== ObjectType.GROUND) {
+      return;
+    }
+
+    // Add original ground fixture to delete list
+    fixturesToDelete.push(fixture);
+
+    // Get shape and vertices of the ground
     const shape: any = fixture.m_shape;
     const fixtureVertices: b2Vec2[] = shape.m_vertices;
 
@@ -79,8 +90,8 @@ export function DestroyGround(aabb: b2AABB, polygon: b2Vec2[], m_world): Destroy
 
   const destroyedGroundResult: DestroyedGroundResult = {
     polygonsToAdd,
-    fixturesToDelete: fixtures
-  }
+    fixturesToDelete
+  };
 
   return destroyedGroundResult;
 }
