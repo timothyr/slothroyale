@@ -44,6 +44,9 @@ export class Player {
     const bd = new box2d.b2BodyDef();
     bd.type = box2d.b2BodyType.b2_dynamicBody;
 
+    // Player graphics
+    const displayObject = this.createSprite();
+
     this.body = m_world.CreateBody(bd);
 
     const box = new box2d.b2PolygonShape();
@@ -56,6 +59,7 @@ export class Player {
 
     this.playerMovement = {
       objectType: ObjectType.PLAYER,
+      displayObject,
       minAngle: box2d.b2DegToRad(PLAYER_MIN_ANGLE),
       maxAngle: box2d.b2DegToRad(PLAYER_MAX_ANGLE),
       velocity: 0,
@@ -74,7 +78,6 @@ export class Player {
 
     this.body.SetFixedRotation(true);
     this.body.SetSleepingAllowed(true); // set only on players turn?
-    this.createSprite();
 
     this.clickEventEmitter = new EventEmitter<PlayerDraggingData>();
   }
@@ -87,7 +90,7 @@ export class Player {
     return this.playerSprite;
   }
 
-  createSprite(): void {
+  createSprite(): PIXI.DisplayObject {
     // test player sprite
     this.playerSprite = PIXI.Sprite.from('assets/bunny.png');
     const x = gfx.screen.width/2;
@@ -98,7 +101,7 @@ export class Player {
     this.playerSprite.interactive = true;
     this.playerSprite.buttonMode = true;
 
-    gfx.stage.addChild(this.playerSprite);
+    return gfx.stage.addChild(this.playerSprite);
   }
 
   updateSprite(): void {

@@ -5,4 +5,5 @@ export const enum ObjectType {
 
 export interface UserData {
   objectType: ObjectType;
+  displayObject: PIXI.DisplayObject;
 }

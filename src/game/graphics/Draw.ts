@@ -11,3 +11,7 @@ export function DrawPolygon(vertices: number[]): PIXI.DisplayObject {
 
   return gfx.stage.addChild(graphics);
 }
+
+export function RemovePolygon(displayObject: PIXI.DisplayObject): void {
+  gfx.stage.removeChild(displayObject);
+}

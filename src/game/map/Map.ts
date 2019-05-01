@@ -5,7 +5,7 @@ import { Player, PlayerMovement, PlayerDraggingData } from '@game/player/Player'
 import { b2Fixture, b2WorldManifold, b2Vec2, b2Atan2, b2AABB, b2PolygonShape, b2Contact } from '@flyover/box2d';
 
 import { GenerateMap } from '@game/map/map-generation/MapGenerator';
-import { DrawPolygon } from '@game/graphics/Draw';
+import { DrawPolygon, RemovePolygon } from '@game/graphics/Draw';
 import { Subscription } from 'rxjs';
 import { gfx } from '@game/graphics/Pixi';
 import { DestroyGround, DestroyedGroundResult } from './DestroyGround';
@@ -118,27 +118,42 @@ export class Map extends MapBase {
       pixiVertices.push(-v.y * this.metersToPixel);
     });
 
-    DrawPolygon(pixiVertices);
+    const displayObject = DrawPolygon(pixiVertices);
 
     // Box2D Physics
 
     const bd = new box2d.b2BodyDef();
     const ground = this.m_world.CreateBody(bd);
 
-    // Generate Polygon
-    {
-      // Set shape
-      const shape = new box2d.b2PolygonShape();
-      shape.Set(polygon, polygon.length);
+    // Set shape
+    const shape = new box2d.b2PolygonShape();
+    shape.Set(polygon, polygon.length);
 
-      // Set UserData to ground
-      const groundUserData: UserData = {objectType: ObjectType.GROUND};
+    // Set UserData to ground
+    const groundUserData: UserData = {
+      objectType: ObjectType.GROUND,
+      displayObject
+    };
 
-      // Create ground fixture
-      const groundFixtureDef = new box2d.b2FixtureDef();
-      groundFixtureDef.shape = shape;
-      groundFixtureDef.userData = groundUserData;
-      ground.CreateFixture(groundFixtureDef, 0);
+    // Create ground fixture
+    const groundFixtureDef = new box2d.b2FixtureDef();
+    groundFixtureDef.shape = shape;
+    groundFixtureDef.userData = groundUserData;
+    ground.CreateFixture(groundFixtureDef, 0);
+  }
+
+  /**
+   * Destroy the ground object by deleting the polygon and removing sprites
+   * @param fixture Ground fixture
+   */
+  DestroyGroundPoly(fixture: b2Fixture): void {
+    // Remove physics object
+    this.m_world.DestroyBody(fixture.GetBody());
+
+    // Remove Pixi sprite from stage
+    const userData: UserData = fixture.GetUserData();
+    if (userData.displayObject) {
+      RemovePolygon(userData.displayObject)
     }
   }
 
@@ -177,7 +192,7 @@ export class Map extends MapBase {
       res.polygonsToAdd.forEach((poly: b2Vec2[]) => this.CreateGroundPoly(poly));
 
       // Destroy the old ground
-      res.fixturesToDelete.forEach((fixture: b2Fixture) => this.m_world.DestroyBody(fixture.GetBody()));
+      res.fixturesToDelete.forEach((fixture: b2Fixture) => this.DestroyGroundPoly(fixture));
     }
 
     return hit_fixture;
