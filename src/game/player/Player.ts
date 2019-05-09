@@ -3,17 +3,13 @@ import { Input, MoveX } from '@game/core/Input';
 import { gfx } from '@game/graphics/Pixi';
 import * as PIXI from 'pixi.js';
 import { EventEmitter } from '@angular/core';
-import { b2Vec2 } from '@flyover/box2d';
+import { b2Vec2, b2Body, b2World } from '@flyover/box2d';
 import { Observable } from 'rxjs';
 import { UserData, ObjectType } from '@game/object/UserData';
+import { GameObject } from '@game/object/GameObject';
 
 const PLAYER_MIN_ANGLE = -90 - 82;//- 70;
 const PLAYER_MAX_ANGLE = -90 + 82;//+ 70;
-
-export interface PlayerDraggingData {
-  isDragging: boolean;
-  pos: b2Vec2;
-}
 
 export const enum PlayerDirection {
   LEFT = -1,
@@ -29,29 +25,22 @@ export interface PlayerMovement extends UserData {
   numFootContacts: number;
 }
 
-export class Player {
+export class Player extends GameObject {
 
-  private clickEventEmitter: EventEmitter<PlayerDraggingData>;
-  private isDragging = false;
-  private playerSprite: PIXI.Sprite;
-  body: box2d.b2Body;
   sensorFixture: box2d.b2Fixture;
   playerMovement: PlayerMovement;
   jumpTimer: number;
   stopped = true;
 
-  constructor(m_world: box2d.b2World) {
+  createBody(world: b2World): b2Body {
     const bd = new box2d.b2BodyDef();
     bd.type = box2d.b2BodyType.b2_dynamicBody;
 
-    // Player graphics
-    const displayObject = this.createSprite();
-
-    this.body = m_world.CreateBody(bd);
+    const body = world.CreateBody(bd);
 
     const box = new box2d.b2PolygonShape();
     box.SetAsBox(0.5, 0.75);
-    const playerPhysicsFixture = this.body.CreateFixture(box, 0);
+    const playerPhysicsFixture = body.CreateFixture(box, 0);
 
     const circle = new box2d.b2CircleShape();
     circle.m_p.Set(0, -0.75);
@@ -59,7 +48,7 @@ export class Player {
 
     this.playerMovement = {
       objectType: ObjectType.PLAYER,
-      displayObject,
+      displayObject: this.displayObject,
       minAngle: box2d.b2DegToRad(PLAYER_MIN_ANGLE),
       maxAngle: box2d.b2DegToRad(PLAYER_MAX_ANGLE),
       velocity: 0,
@@ -74,39 +63,22 @@ export class Player {
     playerSensorFixtureDef.shape = circle;
     playerSensorFixtureDef.friction = 10000000;
     playerSensorFixtureDef.userData = this.playerMovement;
-    this.sensorFixture = this.body.CreateFixture(playerSensorFixtureDef, 0);
+    this.sensorFixture = body.CreateFixture(playerSensorFixtureDef, 0);
 
-    this.body.SetFixedRotation(true);
-    this.body.SetSleepingAllowed(true); // set only on players turn?
+    body.SetFixedRotation(true);
+    body.SetSleepingAllowed(true); // set only on players turn?
 
-    this.clickEventEmitter = new EventEmitter<PlayerDraggingData>();
+    return body;
   }
 
-  getClickEventEmitter(): Observable<PlayerDraggingData> {
-    return this.clickEventEmitter.asObservable();
-  }
-
-  getSprite(): PIXI.Sprite {
-    return this.playerSprite;
-  }
-
-  createSprite(): PIXI.DisplayObject {
+  createSprite(): PIXI.Sprite {
     // test player sprite
-    this.playerSprite = PIXI.Sprite.from('assets/bunny.png');
-    const x = gfx.screen.width/2;
-    const y = gfx.screen.height/2;
-    console.log("seyt bunny to ",x ,y)
-    this.playerSprite.position.set(x, y);
-    this.playerSprite.anchor.set(0.5);
-    this.playerSprite.interactive = true;
-    this.playerSprite.buttonMode = true;
+    const sprite = PIXI.Sprite.from('assets/bunny.png');
+    sprite.anchor.set(0.5, 0.3);
+    sprite.interactive = true;
+    sprite.buttonMode = true;
 
-    return gfx.stage.addChild(this.playerSprite);
-  }
-
-  updateSprite(): void {
-    const worldCenter = this.body.GetWorldCenter()
-    this.playerSprite.position.set(worldCenter.x * gfx.metersToPixel, -worldCenter.y * gfx.metersToPixel);
+    return sprite;
   }
 
   handleInput(input: Input) {
@@ -189,9 +161,5 @@ export class Player {
     if (this.jumpTimer > 0) {
       this.jumpTimer--;
     }
-  }
-
-  setPosition(x, y): void {
-    this.body.SetPosition(new box2d.b2Vec2(x,y));
   }
 }

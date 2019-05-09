@@ -6,11 +6,12 @@ import { b2Fixture, b2Vec2, b2AABB, b2Contact } from '@flyover/box2d';
 
 import { GenerateMap } from '@game/map/map-generation/MapGenerator';
 import { DrawPolygon, RemovePolygon } from '@game/graphics/Draw';
-import { Subscription } from 'rxjs';
-import { gfx } from '@game/graphics/Pixi';
+import { gfx, metersToPixel } from '@game/graphics/Pixi';
 import { DestroyGround, DestroyedGroundResult } from './DestroyGround';
 import { UserData, ObjectType } from '@game/object/UserData';
 import { playerPreSolve, playerEndContact, playerBeginContact } from '@game/player/ContactListener';
+import { GameObject } from '@game/object/GameObject';
+import { Grenade } from '@game/weapon/Grenade';
 
 export class Map extends MapBase {
 
@@ -30,8 +31,8 @@ export class Map extends MapBase {
       map.polygons.forEach(polyShape => this.CreateMapPoly(polyShape));
 
       // Create player
-      this.player = new Player(this.m_world);
-      this.player.setPosition(0, this.mapHeightPx / this.mapSizeMultiplier);
+      const playerPosition = new b2Vec2(0, this.mapHeightPx / this.mapSizeMultiplier);
+      this.player = new Player(this.m_world, playerPosition);
 
       // Set eventhandlers for map
       this.addMapEventHandlers();
@@ -52,7 +53,6 @@ export class Map extends MapBase {
     });
   }
 
-  public metersToPixel = 20;
 
   mapSizeMultiplier = 8;
   mapWidthPx = 1280;
@@ -60,7 +60,7 @@ export class Map extends MapBase {
   mapClipper: any;
 
   player: Player = null;
-  playerClickListener: Subscription;
+  gameObjects: GameObject[] = [];
 
   public static Create(): MapBase {
     return new Map();
@@ -85,6 +85,11 @@ export class Map extends MapBase {
     event.stopPropagation();
     this.player.getSprite().alpha = 0.5;
     this.MouseDown(this.screenToWorldPos(event));
+
+    const playerPosition = this.player.getPosition();
+    const grenadePosition = new b2Vec2(playerPosition.x, playerPosition.y + 5);
+    const grenade = new Grenade(this.m_world, grenadePosition);
+    this.gameObjects.push(grenade);
   }
 
   onPlayerDragEnd(event: PIXI.interaction.InteractionEvent): void {
@@ -132,8 +137,8 @@ export class Map extends MapBase {
     const pixiVertices: number[] = [];
 
     polygon.forEach((v: b2Vec2) => {
-      pixiVertices.push(v.x * this.metersToPixel);
-      pixiVertices.push(-v.y * this.metersToPixel);
+      pixiVertices.push(v.x * metersToPixel);
+      pixiVertices.push(-v.y * metersToPixel);
     });
 
     const displayObject = DrawPolygon(pixiVertices);
@@ -186,6 +191,8 @@ export class Map extends MapBase {
       this.player.handleInput(input);
       this.player.updateSprite();
     }
+
+    this.gameObjects.forEach(gameObject => gameObject.updateSprite());
 
     super.Step(settings, input);
   }

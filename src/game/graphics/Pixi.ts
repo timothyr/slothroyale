@@ -1,6 +1,8 @@
 import * as PIXI from 'pixi.js';
 import { g_camera } from '@game/core/DebugDraw';
 
+export const metersToPixel = 20;
+
 export class PixiGraphics extends PIXI.Application {
     public metersToPixel = 20;
 }
