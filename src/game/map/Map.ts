@@ -1,8 +1,8 @@
 import * as box2d from '@flyover/box2d';
 import { MapBase, Settings } from '@game/core/MapBase';
-import { Input, MoveX } from '@game/core/Input';
-import { Player, PlayerMovement, PlayerDraggingData } from '@game/player/Player';
-import { b2Fixture, b2WorldManifold, b2Vec2, b2Atan2, b2AABB, b2PolygonShape, b2Contact } from '@flyover/box2d';
+import { Input } from '@game/core/Input';
+import { Player } from '@game/player/Player';
+import { b2Fixture, b2Vec2, b2AABB, b2Contact } from '@flyover/box2d';
 
 import { GenerateMap } from '@game/map/map-generation/MapGenerator';
 import { DrawPolygon, RemovePolygon } from '@game/graphics/Draw';
@@ -11,8 +11,6 @@ import { gfx } from '@game/graphics/Pixi';
 import { DestroyGround, DestroyedGroundResult } from './DestroyGround';
 import { UserData, ObjectType } from '@game/object/UserData';
 import { playerPreSolve, playerEndContact, playerBeginContact } from '@game/player/ContactListener';
-// import * as clipperLib from 'js-angusj-clipper/web'; // es6 / typescript
-
 
 export class Map extends MapBase {
 
@@ -35,19 +33,22 @@ export class Map extends MapBase {
       this.player = new Player(this.m_world);
       this.player.setPosition(0, this.mapHeightPx / this.mapSizeMultiplier);
 
+      // Set eventhandlers for map
+      this.addMapEventHandlers();
+
       // Set eventhandlers for player
       this.player.getSprite()
         // events for drag start
-        .on('mousedown', (event) => this.onDragStart(event))
-        .on('touchstart', (event) => this.onDragStart(event))
+        .on('mousedown', (event) => this.onPlayerDragStart(event))
+        .on('touchstart', (event) => this.onPlayerDragStart(event))
         // events for drag end
-        .on('mouseup', (event) => this.onDragEnd(event))
-        .on('mouseupoutside', (event) => this.onDragEnd(event))
-        .on('touchend', (event) => this.onDragEnd(event))
-        .on('touchendoutside', (event) => this.onDragEnd(event))
+        .on('mouseup', (event) => this.onPlayerDragEnd(event))
+        .on('mouseupoutside', (event) => this.onPlayerDragEnd(event))
+        .on('touchend', (event) => this.onPlayerDragEnd(event))
+        .on('touchendoutside', (event) => this.onPlayerDragEnd(event))
         // events for drag move
-        .on('mousemove', (event) => this.onDragMove(event))
-        .on('touchmove', (event) => this.onDragMove(event));
+        .on('mousemove', (event) => this.onPlayerDragMove(event))
+        .on('touchmove', (event) => this.onPlayerDragMove(event));
     });
   }
 
@@ -65,18 +66,35 @@ export class Map extends MapBase {
     return new Map();
   }
 
+  // Add mouse and touch handlers for map
+  addMapEventHandlers(): void {
+    gfx.renderer.plugins.interaction.on('mousedown', (e) => this.onMapMouseDown(e));
+    gfx.renderer.plugins.interaction.on('pointerdown', (e) => this.onMapMouseDown(e));
+    gfx.renderer.plugins.interaction.on('mouseup', (e) => this.onMapMouseUp(e));
+  }
 
-  onDragStart(event): void {
+  onMapMouseDown(event: PIXI.interaction.InteractionEvent): void {
+    this.MouseDown(this.screenToWorldPos(event));
+  }
+
+  onMapMouseUp(event: PIXI.interaction.InteractionEvent): void {
+    this.MouseUp(this.screenToWorldPos(event));
+  }
+
+  onPlayerDragStart(event: PIXI.interaction.InteractionEvent): void {
+    event.stopPropagation();
     this.player.getSprite().alpha = 0.5;
     this.MouseDown(this.screenToWorldPos(event));
   }
 
-  onDragEnd(event): void {
+  onPlayerDragEnd(event: PIXI.interaction.InteractionEvent): void {
+    event.stopPropagation();
     this.player.getSprite().alpha = 1;
     this.MouseUp(this.screenToWorldPos(event));
   }
 
-  onDragMove(event): void {
+  onPlayerDragMove(event: PIXI.interaction.InteractionEvent): void {
+    event.stopPropagation();
     this.MouseMove(this.screenToWorldPos(event));
   }
 
