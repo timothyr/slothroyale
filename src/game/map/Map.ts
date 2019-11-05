@@ -2,7 +2,7 @@ import * as box2d from '@flyover/box2d';
 import { MapBase, Settings } from '@game/core/MapBase';
 import { Input } from '@game/core/Input';
 import { Player } from '@game/player/Player';
-import { b2Fixture, b2Vec2, b2AABB, b2Contact } from '@flyover/box2d';
+import { b2Fixture, b2Vec2, b2AABB, b2Contact, b2Sin, b2Cos, b2DegToRad } from '@flyover/box2d';
 
 import { GenerateMap } from '@game/map/map-generation/MapGenerator';
 import { DrawPolygon, RemovePolygon } from '@game/graphics/Draw';
@@ -60,6 +60,7 @@ export class Map extends MapBase {
   mapClipper: any;
 
   player: Player = null;
+  playerFireCooldown = false;
   gameObjects: GameObject[] = [];
 
   public static Create(): MapBase {
@@ -85,11 +86,6 @@ export class Map extends MapBase {
     event.stopPropagation();
     this.player.getSprite().alpha = 0.5;
     this.MouseDown(this.screenToWorldPos(event));
-
-    const playerPosition = this.player.getPosition();
-    const grenadePosition = new b2Vec2(playerPosition.x, playerPosition.y + 5);
-    const grenade = new Grenade(this.m_world, grenadePosition);
-    this.gameObjects.push(grenade);
   }
 
   onPlayerDragEnd(event: PIXI.interaction.InteractionEvent): void {
@@ -190,6 +186,24 @@ export class Map extends MapBase {
     if (this.player) {
       this.player.handleInput(input);
       this.player.updateSprite();
+
+      if (this.playerFireCooldown && !input.fire) {
+        this.playerFireCooldown = false;
+      }
+
+      if (input.fire && !this.playerFireCooldown) {
+        const playerPosition = this.player.getPosition();
+
+        const gx = playerPosition.x + (2 * b2Sin(b2DegToRad(this.player.aimAngle)) * this.player.direction);
+        const gy = playerPosition.y - (2 * b2Cos(b2DegToRad(this.player.aimAngle)));
+        const grenadePosition = new b2Vec2(gx, gy);
+
+        const grenade = new Grenade(this.m_world, grenadePosition, this.player.aimAngle, this.player.direction);
+
+        this.gameObjects.push(grenade);
+
+        this.playerFireCooldown = true;
+      }
     }
 
     this.gameObjects.forEach(gameObject => gameObject.updateSprite());

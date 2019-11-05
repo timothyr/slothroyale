@@ -1,11 +1,20 @@
 import { GameObject } from '@game/object/GameObject';
-import { b2World, b2Body, b2BodyDef, b2BodyType, b2CircleShape } from '@flyover/box2d';
+import { b2World, b2Body, b2BodyDef, b2BodyType, b2CircleShape, b2Vec2, b2Cos, b2DegToRad, b2Sin } from '@flyover/box2d';
 import * as PIXI from 'pixi.js';
 import { metersToPixel } from '@game/graphics/Pixi';
 
 const size = 0.5;
 
 export class Grenade extends GameObject {
+
+  constructor(world: b2World, position: b2Vec2, aimAngle: number, direction: number) {
+    super(world, position);
+
+    const vx = (12 * b2Sin(b2DegToRad(aimAngle)) * direction);
+    const vy = - (12 * b2Cos(b2DegToRad(aimAngle)));
+
+    this.body.SetLinearVelocity(new b2Vec2(vx, vy));
+  }
 
   createBody(world: b2World): b2Body {
     const bd = new b2BodyDef();

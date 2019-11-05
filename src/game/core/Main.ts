@@ -156,6 +156,9 @@ export class Main {
 
   public HandleKey(e: KeyboardEvent, isPressed: boolean): void {
     switch (e.key) {
+      case ' ':
+        this.m_input.fire = isPressed;
+        break;
       case 'Control':
 
         break;

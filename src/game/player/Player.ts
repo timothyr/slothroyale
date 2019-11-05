@@ -1,15 +1,18 @@
 import * as box2d from '@flyover/box2d';
-import { Input, MoveX } from '@game/core/Input';
+import { Input, MoveX, MoveY } from '@game/core/Input';
 import { gfx } from '@game/graphics/Pixi';
 import * as PIXI from 'pixi.js';
 import { EventEmitter } from '@angular/core';
-import { b2Vec2, b2Body, b2World } from '@flyover/box2d';
+import { b2Vec2, b2Body, b2World, b2Sin, b2Cos, b2DegToRad, b2Max, b2Min } from '@flyover/box2d';
 import { Observable } from 'rxjs';
 import { UserData, ObjectType } from '@game/object/UserData';
 import { GameObject } from '@game/object/GameObject';
 
 const PLAYER_MIN_ANGLE = -90 - 82;//- 70;
 const PLAYER_MAX_ANGLE = -90 + 82;//+ 70;
+
+const AIM_MIN_ANGLE = 0;
+const AIM_MAX_ANGLE = 180;
 
 export const enum PlayerDirection {
   LEFT = -1,
@@ -31,6 +34,10 @@ export class Player extends GameObject {
   playerMovement: PlayerMovement;
   jumpTimer: number;
   stopped = true;
+  sprite: PIXI.Sprite;
+  aimArrow: PIXI.DisplayObject;
+  aimAngle = 90;
+  direction = PlayerDirection.RIGHT;
 
   createBody(world: b2World): b2Body {
     const bd = new box2d.b2BodyDef();
@@ -77,6 +84,9 @@ export class Player extends GameObject {
     sprite.anchor.set(0.5, 0.3);
     sprite.interactive = true;
     sprite.buttonMode = true;
+    this.sprite = sprite;
+
+    this.DrawAimArrow();
 
     return sprite;
   }
@@ -111,11 +121,11 @@ export class Player extends GameObject {
 
       switch (input.moveX) {
         case MoveX.LEFT:
-          direction = PlayerDirection.LEFT;
+          this.direction = direction = PlayerDirection.LEFT;
           velocity = -2;
           break;
         case MoveX.RIGHT:
-          direction = PlayerDirection.RIGHT;
+          this.direction = direction = PlayerDirection.RIGHT;
           velocity = 2;
           break;
       }
@@ -124,13 +134,13 @@ export class Player extends GameObject {
         ...this.sensorFixture.GetUserData(),
         velocity,
         moveX: input.moveX,
-        ...(direction) && {direction}
+        ...(direction) && { direction }
       });
     }
 
     if (input.jump && this.jumpTimer === 0 && this.canJump()) {
       const debug_pos = this.body.GetPosition();
-      console.log("body pos",debug_pos.x, debug_pos.y);
+      console.log("body pos", debug_pos.x, debug_pos.y);
       const dir: number = this.sensorFixture.GetUserData().direction;
       this.body.ApplyLinearImpulse(new box2d.b2Vec2(this.body.GetMass() * 2 * dir, this.body.GetMass() * 5), this.body.GetWorldCenter());
       this.jumpTimer = 50;
@@ -142,6 +152,21 @@ export class Player extends GameObject {
     }
 
     this.jumpTimerTick();
+
+    // Update Aim arrow
+
+    switch (input.moveY) {
+      case MoveY.UP:
+        this.aimAngle += 2;
+        this.aimAngle = b2Min(this.aimAngle, AIM_MAX_ANGLE);
+        break;
+      case MoveY.DOWN:
+        this.aimAngle -= 2;
+        this.aimAngle = b2Max(this.aimAngle, AIM_MIN_ANGLE);
+        break;
+    }
+
+    this.aimArrow.setTransform(undefined, undefined, undefined, undefined, b2DegToRad(this.aimAngle * this.direction * -1));
   }
 
   addNumFootContacts(num: number) {
@@ -161,5 +186,36 @@ export class Player extends GameObject {
     if (this.jumpTimer > 0) {
       this.jumpTimer--;
     }
+  }
+
+  // Aiming arrow
+
+  DrawAimArrow() {
+    const graphics = new PIXI.Graphics();
+
+    const angle = 0;
+    const radius = 30;
+
+    const s = radius * b2Sin(b2DegToRad(angle + 10));
+    const c = radius * b2Cos(b2DegToRad(angle + 10));
+    const s1 = radius * b2Sin(b2DegToRad(angle - 10));
+    const c1 = radius * b2Cos(b2DegToRad(angle - 10));
+    const s2 = radius * b2Sin(b2DegToRad(angle)) * 2;
+    const c2 = radius * b2Cos(b2DegToRad(angle)) * 2;
+
+    const vertices: number[] = [s, c, s1, c1, s2, c2];
+
+    graphics.lineStyle(0);
+    graphics.beginFill(0xFAFAFA, 1);
+    graphics.drawPolygon(vertices);
+    graphics.endFill();
+
+    this.aimArrow = this.sprite.addChild(graphics);
+
+    this.aimArrow.setTransform(undefined, undefined, undefined, undefined, b2DegToRad(270));
+  }
+
+  RemoveAimArrow(): void {
+    this.sprite.removeChild(this.aimArrow);
   }
 }
