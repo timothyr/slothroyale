@@ -1,10 +1,6 @@
-import * as box2d from '@flyover/box2d';
 import { Input, MoveX, MoveY } from '@game/core/Input';
-import { gfx } from '@game/graphics/Pixi';
 import * as PIXI from 'pixi.js';
-import { EventEmitter } from '@angular/core';
-import { b2Vec2, b2Body, b2World, b2Sin, b2Cos, b2DegToRad, b2Max, b2Min } from '@flyover/box2d';
-import { Observable } from 'rxjs';
+import { b2Vec2, b2Body, b2World, b2Sin, b2Cos, b2DegToRad, b2Max, b2Min, b2Fixture, b2BodyType, b2BodyDef, b2PolygonShape, b2CircleShape, b2FixtureDef } from '@flyover/box2d';
 import { UserData, ObjectType } from '@game/object/UserData';
 import { GameObject } from '@game/object/GameObject';
 
@@ -30,7 +26,7 @@ export interface PlayerMovement extends UserData {
 
 export class Player extends GameObject {
 
-  sensorFixture: box2d.b2Fixture;
+  sensorFixture: b2Fixture;
   playerMovement: PlayerMovement;
   jumpTimer: number;
   stopped = true;
@@ -40,33 +36,33 @@ export class Player extends GameObject {
   direction = PlayerDirection.RIGHT;
 
   createBody(world: b2World): b2Body {
-    const bd = new box2d.b2BodyDef();
-    bd.type = box2d.b2BodyType.b2_dynamicBody;
+    const bd = new b2BodyDef();
+    bd.type = b2BodyType.b2_dynamicBody;
 
     const body = world.CreateBody(bd);
 
-    const box = new box2d.b2PolygonShape();
+    const box = new b2PolygonShape();
     box.SetAsBox(0.5, 0.75);
     const playerPhysicsFixture = body.CreateFixture(box, 0);
 
-    const circle = new box2d.b2CircleShape();
+    const circle = new b2CircleShape();
     circle.m_p.Set(0, -0.75);
     circle.m_radius = 0.5;
 
     this.playerMovement = {
       objectType: ObjectType.PLAYER,
       displayObject: this.displayObject,
-      minAngle: box2d.b2DegToRad(PLAYER_MIN_ANGLE),
-      maxAngle: box2d.b2DegToRad(PLAYER_MAX_ANGLE),
+      minAngle: b2DegToRad(PLAYER_MIN_ANGLE),
+      maxAngle: b2DegToRad(PLAYER_MAX_ANGLE),
       velocity: 0,
       moveX: MoveX.NONE,
       direction: PlayerDirection.RIGHT,
-      numFootContacts: 0
+      numFootContacts: 0,
     };
 
     this.jumpTimer = 0;
 
-    const playerSensorFixtureDef = new box2d.b2FixtureDef();
+    const playerSensorFixtureDef = new b2FixtureDef();
     playerSensorFixtureDef.shape = circle;
     playerSensorFixtureDef.friction = 10000000;
     playerSensorFixtureDef.userData = this.playerMovement;
@@ -92,7 +88,7 @@ export class Player extends GameObject {
   }
 
   handleInput(input: Input) {
-    const vel: box2d.b2Vec2 = this.body.GetLinearVelocity();
+    const vel: b2Vec2 = this.body.GetLinearVelocity();
 
     if (Math.abs(vel.x) < 1 && input.moveX === MoveX.NONE && !this.stopped) {
       // Set user data to 0 velocity
@@ -142,7 +138,7 @@ export class Player extends GameObject {
       const debug_pos = this.body.GetPosition();
       console.log("body pos", debug_pos.x, debug_pos.y);
       const dir: number = this.sensorFixture.GetUserData().direction;
-      this.body.ApplyLinearImpulse(new box2d.b2Vec2(this.body.GetMass() * 2 * dir, this.body.GetMass() * 5), this.body.GetWorldCenter());
+      this.body.ApplyLinearImpulse(new b2Vec2(this.body.GetMass() * 2 * dir, this.body.GetMass() * 5), this.body.GetWorldCenter());
       this.jumpTimer = 50;
 
       if (this.stopped) {

@@ -1,6 +1,7 @@
 export const enum ObjectType {
   GROUND,
-  PLAYER
+  PLAYER,
+  PROJECTILE
 }
 
 export interface UserData {

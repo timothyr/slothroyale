@@ -1,9 +1,7 @@
-import * as box2d from '@flyover/box2d';
 import { MapBase, Settings } from '@game/core/MapBase';
 import { Input } from '@game/core/Input';
 import { Player } from '@game/player/Player';
-import { b2Fixture, b2Vec2, b2AABB, b2Contact, b2Sin, b2Cos, b2DegToRad } from '@flyover/box2d';
-
+import { b2Fixture, b2Vec2, b2AABB, b2Contact, b2Sin, b2Cos, b2DegToRad, b2BodyDef, b2PolygonShape, b2FixtureDef, b2BodyType, b2CircleShape, b2ContactListener } from '@flyover/box2d';
 import { GenerateMap } from '@game/map/map-generation/MapGenerator';
 import { DrawPolygon, RemovePolygon } from '@game/graphics/Draw';
 import { gfx, metersToPixel } from '@game/graphics/Pixi';
@@ -12,6 +10,7 @@ import { UserData, ObjectType } from '@game/object/UserData';
 import { playerPreSolve, playerEndContact, playerBeginContact } from '@game/player/ContactListener';
 import { GameObject } from '@game/object/GameObject';
 import { Grenade } from '@game/weapon/Grenade';
+import { projectileBeginContact } from '@game/weapon/ContactListener';
 
 export class Map extends MapBase {
 
@@ -62,6 +61,8 @@ export class Map extends MapBase {
   player: Player = null;
   playerFireCooldown = false;
   gameObjects: GameObject[] = [];
+  gameObjectsToDestroy: GameObject[] = [];
+
 
   public static Create(): MapBase {
     return new Map();
@@ -110,12 +111,12 @@ export class Map extends MapBase {
    * @param polygon Ground polygon to create
    */
   private CreateMapPoly(polygon: b2Vec2[]): void {
-    const vertices: box2d.b2Vec2[] = polygon.map(v => {
+    const vertices: b2Vec2[] = polygon.map(v => {
       // Center the polygons on the map
       const x = (v.x / this.mapSizeMultiplier) - ((this.mapWidthPx / 2) / this.mapSizeMultiplier);
       const y = (v.y / -this.mapSizeMultiplier) - ((this.mapHeightPx / 2) / -this.mapSizeMultiplier);
 
-      return new box2d.b2Vec2(x, y);
+      return new b2Vec2(x, y);
     });
 
     // Create the ground
@@ -141,21 +142,21 @@ export class Map extends MapBase {
 
     // Box2D Physics
 
-    const bd = new box2d.b2BodyDef();
+    const bd = new b2BodyDef();
     const ground = this.m_world.CreateBody(bd);
 
     // Set shape
-    const shape = new box2d.b2PolygonShape();
+    const shape = new b2PolygonShape();
     shape.Set(polygon, polygon.length);
 
     // Set UserData to ground
     const groundUserData: UserData = {
       objectType: ObjectType.GROUND,
-      displayObject
+      displayObject,
     };
 
     // Create ground fixture
-    const groundFixtureDef = new box2d.b2FixtureDef();
+    const groundFixtureDef = new b2FixtureDef();
     groundFixtureDef.shape = shape;
     groundFixtureDef.userData = groundUserData;
     ground.CreateFixture(groundFixtureDef, 0);
@@ -166,13 +167,19 @@ export class Map extends MapBase {
    * @param fixture Ground fixture
    */
   DestroyGroundPoly(fixture: b2Fixture): void {
+    const userData: UserData = fixture.GetUserData();
+
+    // Ensure that object is ground
+    if (userData.objectType !== ObjectType.GROUND) {
+      return;
+    }
+
     // Remove physics object
     this.m_world.DestroyBody(fixture.GetBody());
 
     // Remove Pixi sprite from stage
-    const userData: UserData = fixture.GetUserData();
     if (userData.displayObject) {
-      RemovePolygon(userData.displayObject)
+      RemovePolygon(userData.displayObject);
     }
   }
 
@@ -208,10 +215,51 @@ export class Map extends MapBase {
 
     this.gameObjects.forEach(gameObject => gameObject.updateSprite());
 
+    // Destroy all objects in destruction queue
+    this.gameObjectsToDestroy.forEach(gameObject => {
+
+      // Explode
+      this.projectileExplode(gameObject);
+
+      gameObject.destroyBody();
+      gameObject.destroySprite();
+
+      const index = this.gameObjects.indexOf(gameObject, 0);
+      if (index > -1) {
+        this.gameObjects.splice(index, 1);
+      }
+
+    });
+
+    // Clear destroy array
+    this.gameObjectsToDestroy.length = 0;
+
+    // Step
     super.Step(settings, input);
   }
 
-  public MouseDown(p: box2d.b2Vec2): boolean {
+  projectileExplode(gameObject: GameObject): void {
+
+    const x = gameObject.getPosition().x;
+    const y = gameObject.getPosition().y;
+
+    // Testing: Destroy 2x2 block of ground on mouse press
+    const aabb: b2AABB = new b2AABB();
+    aabb.lowerBound.Copy(new b2Vec2(x - 1, y - 1));
+    aabb.upperBound.Copy(new b2Vec2(x + 1, y + 1));
+
+    const poly1: any[] = [{ x: x - 1, y: y - 1 }, { x: x - 1, y: y + 1 }, { x: x + 1, y: y + 1 }, { x: x + 1, y: y - 1 }];
+
+    const res: DestroyedGroundResult = DestroyGround(aabb, poly1, this.m_world);
+
+    // Create the new ground
+    res.polygonsToAdd.forEach((poly: b2Vec2[]) => this.CreateGroundPoly(poly));
+
+    // Destroy the old ground
+    res.fixturesToDelete.forEach((fixture: b2Fixture) => this.DestroyGroundPoly(fixture));
+  }
+
+  public MouseDown(p: b2Vec2): boolean {
     // Pick up Dynamic bodies
     const hit_fixture = super.MouseDown(p);
 
@@ -240,10 +288,10 @@ export class Map extends MapBase {
   public CreateCircles(numCircles: number): void {
     // Create circles
     for (let i = 0; i < numCircles; i++) {
-      const bd = new box2d.b2BodyDef();
-      bd.type = box2d.b2BodyType.b2_dynamicBody;
+      const bd = new b2BodyDef();
+      bd.type = b2BodyType.b2_dynamicBody;
       const body = this.m_world.CreateBody(bd);
-      const shape = new box2d.b2CircleShape();
+      const shape = new b2CircleShape();
       shape.m_p.Set(0, 10 * (i + 1));
       shape.m_radius = 4;
       const f = body.CreateFixture(shape, 0.5);
@@ -252,17 +300,17 @@ export class Map extends MapBase {
 
   public CreateRamp(): void {
     {
-      const bd = new box2d.b2BodyDef();
+      const bd = new b2BodyDef();
       const ground = this.m_world.CreateBody(bd);
 
       // Right slope
       {
-        const shape = new box2d.b2PolygonShape();
+        const shape = new b2PolygonShape();
         const vertices = [
-          new box2d.b2Vec2(15, 5),
-          new box2d.b2Vec2(10, 10),
-          new box2d.b2Vec2(20, 0),
-          new box2d.b2Vec2(5, 0),
+          new b2Vec2(15, 5),
+          new b2Vec2(10, 10),
+          new b2Vec2(20, 0),
+          new b2Vec2(5, 0),
         ];
         shape.Set(vertices, 4);
         ground.CreateFixture(shape, 0.0);
@@ -270,12 +318,12 @@ export class Map extends MapBase {
 
       // Left slope
       {
-        const shape = new box2d.b2PolygonShape();
+        const shape = new b2PolygonShape();
         const vertices = [
-          new box2d.b2Vec2(-15, 5),
-          new box2d.b2Vec2(-7, 5),
-          new box2d.b2Vec2(-20, 0),
-          new box2d.b2Vec2(-2, 0),
+          new b2Vec2(-15, 5),
+          new b2Vec2(-7, 5),
+          new b2Vec2(-20, 0),
+          new b2Vec2(-2, 0),
         ];
         shape.Set(vertices, 4);
         ground.CreateFixture(shape, 0.0);
@@ -286,52 +334,52 @@ export class Map extends MapBase {
   public CreateWalls(): void {
     // Create the walls of the world.
     {
-      const bd = new box2d.b2BodyDef();
+      const bd = new b2BodyDef();
       const ground = this.m_world.CreateBody(bd);
 
       {
-        const shape = new box2d.b2PolygonShape();
+        const shape = new b2PolygonShape();
         const vertices = [
-          new box2d.b2Vec2(-40, -10),
-          new box2d.b2Vec2(40, -10),
-          new box2d.b2Vec2(40, 0),
-          new box2d.b2Vec2(-40, 0),
+          new b2Vec2(-40, -10),
+          new b2Vec2(40, -10),
+          new b2Vec2(40, 0),
+          new b2Vec2(-40, 0),
         ];
         shape.Set(vertices, 4);
         ground.CreateFixture(shape, 0.0);
       }
 
       {
-        const shape = new box2d.b2PolygonShape();
+        const shape = new b2PolygonShape();
         const vertices = [
-          new box2d.b2Vec2(-40, 40),
-          new box2d.b2Vec2(40, 40),
-          new box2d.b2Vec2(40, 50),
-          new box2d.b2Vec2(-40, 50),
+          new b2Vec2(-40, 40),
+          new b2Vec2(40, 40),
+          new b2Vec2(40, 50),
+          new b2Vec2(-40, 50),
         ];
         shape.Set(vertices, 4);
         ground.CreateFixture(shape, 0.0);
       }
 
       {
-        const shape = new box2d.b2PolygonShape();
+        const shape = new b2PolygonShape();
         const vertices = [
-          new box2d.b2Vec2(-40, -10),
-          new box2d.b2Vec2(-20, -10),
-          new box2d.b2Vec2(-20, 50),
-          new box2d.b2Vec2(-40, 50),
+          new b2Vec2(-40, -10),
+          new b2Vec2(-20, -10),
+          new b2Vec2(-20, 50),
+          new b2Vec2(-40, 50),
         ];
         shape.Set(vertices, 4);
         ground.CreateFixture(shape, 0.0);
       }
 
       {
-        const shape = new box2d.b2PolygonShape();
+        const shape = new b2PolygonShape();
         const vertices = [
-          new box2d.b2Vec2(20, -10),
-          new box2d.b2Vec2(40, -10),
-          new box2d.b2Vec2(40, 50),
-          new box2d.b2Vec2(20, 50),
+          new b2Vec2(20, -10),
+          new b2Vec2(40, -10),
+          new b2Vec2(40, 50),
+          new b2Vec2(20, 50),
         ];
         shape.Set(vertices, 4);
         ground.CreateFixture(shape, 0.0);
@@ -342,13 +390,27 @@ export class Map extends MapBase {
   // --------- Collision -------------
 
   public CreateContactListener(): void {
-    const listener = new box2d.b2ContactListener();
+    const listener = new b2ContactListener();
     listener.BeginContact = (contact: b2Contact) => {
       const fixtureA: b2Fixture = contact.GetFixtureA();
       const fixtureB: b2Fixture = contact.GetFixtureB();
 
       const userDataA: UserData = fixtureA.GetUserData() || null;
       const userDataB: UserData = fixtureB.GetUserData() || null;
+
+      // Destroy projectile on hit
+      const destroyUserDataList: UserData[] = projectileBeginContact(contact, fixtureA, fixtureB, userDataA, userDataB);
+      if (destroyUserDataList) {
+        destroyUserDataList.forEach(destroyUserData => {
+          // Find matching GameObject from UserData
+          const gameObjectToDestroy = this.gameObjects.find(g => g.getUserData() === destroyUserData);
+          // Check for duplicates
+          if (this.gameObjectsToDestroy.indexOf(gameObjectToDestroy) === -1) {
+            // Add to destroy queue
+            this.gameObjectsToDestroy.push(gameObjectToDestroy);
+          }
+        });
+      }
 
       const playerContactChange = playerBeginContact(contact, fixtureA, fixtureB, userDataA, userDataB);
       this.player.addNumFootContacts(playerContactChange);

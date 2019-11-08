@@ -1,7 +1,9 @@
-import { b2Body, b2World, b2Vec2 } from '@flyover/box2d';
+import { b2Body, b2World, b2Vec2, b2Fixture } from '@flyover/box2d';
 import { gfx } from '@game/graphics/Pixi';
+import { UserData } from './UserData';
 
 export abstract class GameObject {
+  protected sensorFixture: b2Fixture;
   protected body: b2Body;
   protected sprite: PIXI.Sprite | PIXI.Graphics;
   protected displayObject: PIXI.DisplayObject;
@@ -33,5 +35,22 @@ export abstract class GameObject {
 
   setPosition(x: number, y: number): void {
     this.body.SetPosition(new b2Vec2(x, y));
+  }
+
+  getUserData(): UserData {
+    return this.sensorFixture.GetUserData();
+  }
+
+  // ONLY CALL OUTSIDE TIME STEP
+  destroyBody(): void {
+    if (this.body) {
+      this.body.GetWorld().DestroyBody(this.body);
+    }
+  }
+
+  destroySprite(): void {
+    if (this.sprite) {
+      this.sprite.destroy();
+    }
   }
 }
