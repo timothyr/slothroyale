@@ -1,5 +1,7 @@
+import { b2Vec2, b2Draw, b2Transform, b2Color, b2_pi, b2AABB } from '@flyover/box2d';
+
 /*
-* Copyright (c) 2006-2007 Erin Catto http://www.box2d.org
+* Copyright (c) 2006-2007 Erin Catto http://www.org
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -16,96 +18,94 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-import * as box2d from '@flyover/box2d';
-
 export class Camera {
-  public readonly m_center: box2d.b2Vec2 = new box2d.b2Vec2(0, 0);
-  ///public readonly m_roll: box2d.b2Rot = new box2d.b2Rot(box2d.b2DegToRad(0));
+  public readonly m_center: b2Vec2 = new b2Vec2(0, 0);
+  ///public readonly m_roll: b2Rot = new b2Rot(b2DegToRad(0));
   public m_extent: number = 27.5;
   public m_zoom: number = 1;
   public m_width: number = 1280;
   public m_height: number = 800;
 
-  public ConvertScreenToWorld(screenPoint: box2d.b2Vec2, out: box2d.b2Vec2): box2d.b2Vec2 {
+  public ConvertScreenToWorld(screenPoint: b2Vec2, out: b2Vec2): b2Vec2 {
     return this.ConvertElementToWorld(screenPoint, out);
   }
 
-  public ConvertWorldToScreen(worldPoint: box2d.b2Vec2, out: box2d.b2Vec2): box2d.b2Vec2 {
+  public ConvertWorldToScreen(worldPoint: b2Vec2, out: b2Vec2): b2Vec2 {
     return this.ConvertWorldToElement(worldPoint, out);
   }
 
-  public ConvertViewportToElement(viewport: box2d.b2Vec2, out: box2d.b2Vec2): box2d.b2Vec2 {
+  public ConvertViewportToElement(viewport: b2Vec2, out: b2Vec2): b2Vec2 {
     // 0,0 at center of canvas, x right and y up
     const element_x: number = viewport.x + (0.5 * this.m_width);
     const element_y: number = (0.5 * this.m_height) - viewport.y;
     return out.Set(element_x, element_y);
   }
 
-  public ConvertElementToViewport(element: box2d.b2Vec2, out: box2d.b2Vec2): box2d.b2Vec2 {
+  public ConvertElementToViewport(element: b2Vec2, out: b2Vec2): b2Vec2 {
     // 0,0 at center of canvas, x right and y up
     const viewport_x: number = element.x - (0.5 * this.m_width);
     const viewport_y: number = (0.5 * this.m_height) - element.y;
     return out.Set(viewport_x, viewport_y);
   }
 
-  public ConvertProjectionToViewport(projection: box2d.b2Vec2, out: box2d.b2Vec2): box2d.b2Vec2 {
-    const viewport: box2d.b2Vec2 = out.Copy(projection);
-    box2d.b2Vec2.MulSV(1 / this.m_zoom, viewport, viewport);
-    ///box2d.b2Vec2.MulSV(this.m_extent, viewport, viewport);
-    box2d.b2Vec2.MulSV(0.5 * this.m_height / this.m_extent, projection, projection);
+  public ConvertProjectionToViewport(projection: b2Vec2, out: b2Vec2): b2Vec2 {
+    const viewport: b2Vec2 = out.Copy(projection);
+    b2Vec2.MulSV(1 / this.m_zoom, viewport, viewport);
+    ///b2Vec2.MulSV(this.m_extent, viewport, viewport);
+    b2Vec2.MulSV(0.5 * this.m_height / this.m_extent, projection, projection);
     return viewport;
   }
 
-  public ConvertViewportToProjection(viewport: box2d.b2Vec2, out: box2d.b2Vec2): box2d.b2Vec2 {
-    const projection: box2d.b2Vec2 = out.Copy(viewport);
-    ///box2d.b2Vec2.MulSV(1 / this.m_extent, projection, projection);
-    box2d.b2Vec2.MulSV(2 * this.m_extent / this.m_height, projection, projection);
-    box2d.b2Vec2.MulSV(this.m_zoom, projection, projection);
+  public ConvertViewportToProjection(viewport: b2Vec2, out: b2Vec2): b2Vec2 {
+    const projection: b2Vec2 = out.Copy(viewport);
+    ///b2Vec2.MulSV(1 / this.m_extent, projection, projection);
+    b2Vec2.MulSV(2 * this.m_extent / this.m_height, projection, projection);
+    b2Vec2.MulSV(this.m_zoom, projection, projection);
     return projection;
   }
 
-  public ConvertWorldToProjection(world: box2d.b2Vec2, out: box2d.b2Vec2): box2d.b2Vec2 {
-    const projection: box2d.b2Vec2 = out.Copy(world);
-    box2d.b2Vec2.SubVV(projection, this.m_center, projection);
-    ///box2d.b2Rot.MulTRV(this.m_roll, projection, projection);
+  public ConvertWorldToProjection(world: b2Vec2, out: b2Vec2): b2Vec2 {
+    const projection: b2Vec2 = out.Copy(world);
+    b2Vec2.SubVV(projection, this.m_center, projection);
+    ///b2Rot.MulTRV(this.m_roll, projection, projection);
     return projection;
   }
 
-  public ConvertProjectionToWorld(projection: box2d.b2Vec2, out: box2d.b2Vec2): box2d.b2Vec2 {
-    const world: box2d.b2Vec2 = out.Copy(projection);
-    ///box2d.b2Rot.MulRV(this.m_roll, world, world);
-    box2d.b2Vec2.AddVV(this.m_center, world, world);
+  public ConvertProjectionToWorld(projection: b2Vec2, out: b2Vec2): b2Vec2 {
+    const world: b2Vec2 = out.Copy(projection);
+    ///b2Rot.MulRV(this.m_roll, world, world);
+    b2Vec2.AddVV(this.m_center, world, world);
     return world;
   }
 
-  public ConvertElementToWorld(element: box2d.b2Vec2, out: box2d.b2Vec2): box2d.b2Vec2 {
-    const viewport: box2d.b2Vec2 = this.ConvertElementToViewport(element, out);
-    const projection: box2d.b2Vec2 = this.ConvertViewportToProjection(viewport, out);
+  public ConvertElementToWorld(element: b2Vec2, out: b2Vec2): b2Vec2 {
+    const viewport: b2Vec2 = this.ConvertElementToViewport(element, out);
+    const projection: b2Vec2 = this.ConvertViewportToProjection(viewport, out);
     return this.ConvertProjectionToWorld(projection, out);
   }
 
-  public ConvertWorldToElement(world: box2d.b2Vec2, out: box2d.b2Vec2): box2d.b2Vec2 {
-    const projection: box2d.b2Vec2 = this.ConvertWorldToProjection(world, out);
-    const viewport: box2d.b2Vec2 = this.ConvertProjectionToViewport(projection, out);
+  public ConvertWorldToElement(world: b2Vec2, out: b2Vec2): b2Vec2 {
+    const projection: b2Vec2 = this.ConvertWorldToProjection(world, out);
+    const viewport: b2Vec2 = this.ConvertProjectionToViewport(projection, out);
     return this.ConvertViewportToElement(viewport, out);
   }
 
-  public ConvertElementToProjection(element: box2d.b2Vec2, out: box2d.b2Vec2): box2d.b2Vec2 {
-    const viewport: box2d.b2Vec2 = this.ConvertElementToViewport(element, out);
+  public ConvertElementToProjection(element: b2Vec2, out: b2Vec2): b2Vec2 {
+    const viewport: b2Vec2 = this.ConvertElementToViewport(element, out);
     return this.ConvertViewportToProjection(viewport, out);
   }
 }
 
 // This class implements debug drawing callbacks that are invoked
 // inside b2World::Step.
-export class DebugDraw extends box2d.b2Draw {
+export class DebugDraw extends b2Draw {
   public m_ctx: CanvasRenderingContext2D | null = null;
 
   constructor() {
     super();
   }
 
-  public PushTransform(xf: box2d.b2Transform): void {
+  public PushTransform(xf: b2Transform): void {
     const ctx: CanvasRenderingContext2D | null = this.m_ctx;
     if (ctx) {
       ctx.save();
@@ -114,14 +114,14 @@ export class DebugDraw extends box2d.b2Draw {
     }
   }
 
-  public PopTransform(xf: box2d.b2Transform): void {
+  public PopTransform(xf: b2Transform): void {
     const ctx: CanvasRenderingContext2D | null = this.m_ctx;
     if (ctx) {
       ctx.restore();
     }
   }
 
-  public DrawPolygon(vertices: box2d.b2Vec2[], vertexCount: number, color: box2d.b2Color): void {
+  public DrawPolygon(vertices: b2Vec2[], vertexCount: number, color: b2Color): void {
     const ctx: CanvasRenderingContext2D | null = this.m_ctx;
     if (ctx) {
       ctx.beginPath();
@@ -135,7 +135,7 @@ export class DebugDraw extends box2d.b2Draw {
     }
   }
 
-  public DrawSolidPolygon(vertices: box2d.b2Vec2[], vertexCount: number, color: box2d.b2Color): void {
+  public DrawSolidPolygon(vertices: b2Vec2[], vertexCount: number, color: b2Color): void {
     const ctx: CanvasRenderingContext2D | null = this.m_ctx;
     if (ctx) {
       ctx.beginPath();
@@ -151,23 +151,23 @@ export class DebugDraw extends box2d.b2Draw {
     }
   }
 
-  public DrawCircle(center: box2d.b2Vec2, radius: number, color: box2d.b2Color): void {
+  public DrawCircle(center: b2Vec2, radius: number, color: b2Color): void {
     const ctx: CanvasRenderingContext2D | null = this.m_ctx;
     if (ctx) {
       ctx.beginPath();
-      ctx.arc(center.x, center.y, radius, 0, box2d.b2_pi * 2, true);
+      ctx.arc(center.x, center.y, radius, 0, b2_pi * 2, true);
       ctx.strokeStyle = color.MakeStyleString(1);
       ctx.stroke();
     }
   }
 
-  public DrawSolidCircle(center: box2d.b2Vec2, radius: number, axis: box2d.b2Vec2, color: box2d.b2Color): void {
+  public DrawSolidCircle(center: b2Vec2, radius: number, axis: b2Vec2, color: b2Color): void {
     const ctx: CanvasRenderingContext2D | null = this.m_ctx;
     if (ctx) {
       const cx: number = center.x;
       const cy: number = center.y;
       ctx.beginPath();
-      ctx.arc(cx, cy, radius, 0, box2d.b2_pi * 2, true);
+      ctx.arc(cx, cy, radius, 0, b2_pi * 2, true);
       ctx.moveTo(cx, cy);
       ctx.lineTo((cx + axis.x * radius), (cy + axis.y * radius));
       ctx.fillStyle = color.MakeStyleString(0.5);
@@ -178,7 +178,7 @@ export class DebugDraw extends box2d.b2Draw {
   }
 
   // #if B2_ENABLE_PARTICLE
-  public DrawParticles(centers: box2d.b2Vec2[], radius: number, colors: box2d.b2Color[] | null, count: number) {
+  public DrawParticles(centers: b2Vec2[], radius: number, colors: b2Color[] | null, count: number) {
     const ctx: CanvasRenderingContext2D | null = this.m_ctx;
     if (ctx) {
       if (colors !== null) {
@@ -187,7 +187,7 @@ export class DebugDraw extends box2d.b2Draw {
           const color = colors[i];
           ctx.fillStyle = color.MakeStyleString();
           // ctx.fillRect(center.x - radius, center.y - radius, 2 * radius, 2 * radius);
-          ctx.beginPath(); ctx.arc(center.x, center.y, radius, 0, box2d.b2_pi * 2, true); ctx.fill();
+          ctx.beginPath(); ctx.arc(center.x, center.y, radius, 0, b2_pi * 2, true); ctx.fill();
         }
       } else {
         ctx.fillStyle = "rgba(255,255,255,0.5)";
@@ -195,7 +195,7 @@ export class DebugDraw extends box2d.b2Draw {
         for (let i = 0; i < count; ++i) {
           const center = centers[i];
           // ctx.rect(center.x - radius, center.y - radius, 2 * radius, 2 * radius);
-          ctx.beginPath(); ctx.arc(center.x, center.y, radius, 0, box2d.b2_pi * 2, true); ctx.fill();
+          ctx.beginPath(); ctx.arc(center.x, center.y, radius, 0, b2_pi * 2, true); ctx.fill();
         }
         // ctx.fill();
       }
@@ -203,7 +203,7 @@ export class DebugDraw extends box2d.b2Draw {
   }
   // #endif
 
-  public DrawSegment(p1: box2d.b2Vec2, p2: box2d.b2Vec2, color: box2d.b2Color): void {
+  public DrawSegment(p1: b2Vec2, p2: b2Vec2, color: b2Color): void {
     const ctx: CanvasRenderingContext2D | null = this.m_ctx;
     if (ctx) {
       ctx.beginPath();
@@ -214,7 +214,7 @@ export class DebugDraw extends box2d.b2Draw {
     }
   }
 
-  public DrawTransform(xf: box2d.b2Transform): void {
+  public DrawTransform(xf: b2Transform): void {
     const ctx: CanvasRenderingContext2D | null = this.m_ctx;
     if (ctx) {
       this.PushTransform(xf);
@@ -222,20 +222,20 @@ export class DebugDraw extends box2d.b2Draw {
       ctx.beginPath();
       ctx.moveTo(0, 0);
       ctx.lineTo(1, 0);
-      ctx.strokeStyle = box2d.b2Color.RED.MakeStyleString(1);
+      ctx.strokeStyle = b2Color.RED.MakeStyleString(1);
       ctx.stroke();
 
       ctx.beginPath();
       ctx.moveTo(0, 0);
       ctx.lineTo(0, 1);
-      ctx.strokeStyle = box2d.b2Color.GREEN.MakeStyleString(1);
+      ctx.strokeStyle = b2Color.GREEN.MakeStyleString(1);
       ctx.stroke();
 
       this.PopTransform(xf);
     }
   }
 
-  public DrawPoint(p: box2d.b2Vec2, size: number, color: box2d.b2Color): void {
+  public DrawPoint(p: b2Vec2, size: number, color: b2Color): void {
     const ctx: CanvasRenderingContext2D | null = this.m_ctx;
     if (ctx) {
       ctx.fillStyle = color.MakeStyleString();
@@ -246,54 +246,54 @@ export class DebugDraw extends box2d.b2Draw {
     }
   }
 
-  private static DrawString_s_color: box2d.b2Color = new box2d.b2Color(0.9, 0.6, 0.6);
+  private static DrawString_s_color: b2Color = new b2Color(0.9, 0.6, 0.6);
   public DrawString(x: number, y: number, message: string): void {
     const ctx: CanvasRenderingContext2D | null = this.m_ctx;
     if (ctx) {
       ctx.save();
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.font = "15px DroidSans";
-      const color: box2d.b2Color = DebugDraw.DrawString_s_color;
+      const color: b2Color = DebugDraw.DrawString_s_color;
       ctx.fillStyle = color.MakeStyleString();
       ctx.fillText(message, x, y);
       ctx.restore();
     }
   }
 
-  private static DrawStringWorld_s_p: box2d.b2Vec2 = new box2d.b2Vec2();
-  private static DrawStringWorld_s_cc: box2d.b2Vec2 = new box2d.b2Vec2();
-  private static DrawStringWorld_s_color: box2d.b2Color = new box2d.b2Color(0.5, 0.9, 0.5);
+  private static DrawStringWorld_s_p: b2Vec2 = new b2Vec2();
+  private static DrawStringWorld_s_cc: b2Vec2 = new b2Vec2();
+  private static DrawStringWorld_s_color: b2Color = new b2Color(0.5, 0.9, 0.5);
   public DrawStringWorld(x: number, y: number, message: string): void {
     const ctx: CanvasRenderingContext2D | null = this.m_ctx;
     if (ctx) {
-      const p: box2d.b2Vec2 = DebugDraw.DrawStringWorld_s_p.Set(x, y);
+      const p: b2Vec2 = DebugDraw.DrawStringWorld_s_p.Set(x, y);
 
       // world -> viewport
-      const vt: box2d.b2Vec2 = g_camera.m_center;
-      box2d.b2Vec2.SubVV(p, vt, p);
+      const vt: b2Vec2 = g_camera.m_center;
+      b2Vec2.SubVV(p, vt, p);
       ///const vr = g_camera.m_roll;
-      ///box2d.b2Rot.MulTRV(vr, p, p);
+      ///b2Rot.MulTRV(vr, p, p);
       const vs: number = g_camera.m_zoom;
-      box2d.b2Vec2.MulSV(1 / vs, p, p);
+      b2Vec2.MulSV(1 / vs, p, p);
 
       // viewport -> canvas
       const cs: number = 0.5 * g_camera.m_height / g_camera.m_extent;
-      box2d.b2Vec2.MulSV(cs, p, p);
+      b2Vec2.MulSV(cs, p, p);
       p.y *= -1;
-      const cc: box2d.b2Vec2 = DebugDraw.DrawStringWorld_s_cc.Set(0.5 * ctx.canvas.width, 0.5 * ctx.canvas.height);
-      box2d.b2Vec2.AddVV(p, cc, p);
+      const cc: b2Vec2 = DebugDraw.DrawStringWorld_s_cc.Set(0.5 * ctx.canvas.width, 0.5 * ctx.canvas.height);
+      b2Vec2.AddVV(p, cc, p);
 
       ctx.save();
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.font = "15px DroidSans";
-      const color: box2d.b2Color = DebugDraw.DrawStringWorld_s_color;
+      const color: b2Color = DebugDraw.DrawStringWorld_s_color;
       ctx.fillStyle = color.MakeStyleString();
       ctx.fillText(message, p.x, p.y);
       ctx.restore();
     }
   }
 
-  public DrawAABB(aabb: box2d.b2AABB, color: box2d.b2Color): void {
+  public DrawAABB(aabb: b2AABB, color: b2Color): void {
     const ctx: CanvasRenderingContext2D | null = this.m_ctx;
     if (ctx) {
       ctx.strokeStyle = color.MakeStyleString();

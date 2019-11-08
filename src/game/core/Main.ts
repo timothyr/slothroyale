@@ -1,4 +1,3 @@
-import * as box2d from '@flyover/box2d';
 import { g_debugDraw, g_camera } from '@game/core/DebugDraw';
 import { MapBase, Settings } from '@game/core/MapBase';
 import { Map } from '@game/map/Map';
@@ -6,6 +5,8 @@ import { Fps } from '@game/core/Fps';
 import { Input, MoveX, MoveY } from './Input';
 // import * as PIXI from '@game/render/PixiJS/pixi.min.js'
 import * as PIXI from 'pixi.js';
+import { b2Vec2, b2Clamp } from '@flyover/box2d';
+
 export class Main {
   public m_time_last = 0;
 
@@ -16,12 +17,12 @@ export class Main {
   public map?: MapBase;
   public readonly m_settings: Settings = new Settings();
 
-  private m_mouse = new box2d.b2Vec2();
+  private m_mouse = new b2Vec2();
   public m_lMouseDown = false;
   public m_rMouseDown = false;
 
-  public readonly m_projection0: box2d.b2Vec2 = new box2d.b2Vec2();
-  public readonly m_viewCenter0: box2d.b2Vec2 = new box2d.b2Vec2();
+  public readonly m_projection0: b2Vec2 = new b2Vec2();
+  public readonly m_viewCenter0: b2Vec2 = new b2Vec2();
 
   public m_canvas_div: HTMLDivElement;
   public m_canvas_2d: HTMLCanvasElement;
@@ -93,7 +94,7 @@ export class Main {
         // ctx.strokeStyle = "blue";
         // ctx.strokeRect(this.m_mouse.x - 24, this.m_mouse.y - 24, 48, 48);
 
-        // const mouse_world: box2d.b2Vec2 = g_camera.ConvertScreenToWorld(this.m_mouse, new box2d.b2Vec2());
+        // const mouse_world: b2Vec2 = g_camera.ConvertScreenToWorld(this.m_mouse, new b2Vec2());
 
         ctx.save();
 
@@ -129,15 +130,15 @@ export class Main {
     g_camera.m_center.Set(0, 0 * g_camera.m_zoom);
   }
 
-  public MoveCamera(move: box2d.b2Vec2): void {
-    const position: box2d.b2Vec2 = g_camera.m_center.Clone();
+  public MoveCamera(move: b2Vec2): void {
+    const position: b2Vec2 = g_camera.m_center.Clone();
     position.SelfAdd(move);
     g_camera.m_center.Copy(position);
   }
 
   public ZoomCamera(zoom: number): void {
     g_camera.m_zoom *= zoom;
-    g_camera.m_zoom = box2d.b2Clamp(g_camera.m_zoom, 0.02, 20);
+    g_camera.m_zoom = b2Clamp(g_camera.m_zoom, 0.02, 20);
   }
 
   // --------- Mouse -----------
@@ -200,9 +201,9 @@ export class Main {
 
   public HandleMouseMove(e: MouseEvent): void {
     const rect = this.m_canvas_2d.getBoundingClientRect();
-    const element: box2d.b2Vec2 = new box2d.b2Vec2(this.getMouseX(e.clientX), this.getMouseY(e.clientY));
-     // const world: box2d.b2Vec2 = g_camera.ConvertScreenToWorld(element, new box2d.b2Vec2());
-    const world: box2d.b2Vec2 = g_camera.ConvertScreenToWorld(element, new box2d.b2Vec2());
+    const element: b2Vec2 = new b2Vec2(this.getMouseX(e.clientX), this.getMouseY(e.clientY));
+     // const world: b2Vec2 = g_camera.ConvertScreenToWorld(element, new b2Vec2());
+    const world: b2Vec2 = g_camera.ConvertScreenToWorld(element, new b2Vec2());
 
     this.m_mouse.Copy(element);
 
@@ -212,17 +213,17 @@ export class Main {
 
     if (this.m_rMouseDown) {
       // m_center = viewCenter0 - (projection - projection0);
-      const projection: box2d.b2Vec2 = g_camera.ConvertElementToProjection(element, new box2d.b2Vec2());
-      const diff: box2d.b2Vec2 = box2d.b2Vec2.SubVV(projection, this.m_projection0, new box2d.b2Vec2());
-      const center: box2d.b2Vec2 = box2d.b2Vec2.SubVV(this.m_viewCenter0, diff, new box2d.b2Vec2());
+      const projection: b2Vec2 = g_camera.ConvertElementToProjection(element, new b2Vec2());
+      const diff: b2Vec2 = b2Vec2.SubVV(projection, this.m_projection0, new b2Vec2());
+      const center: b2Vec2 = b2Vec2.SubVV(this.m_viewCenter0, diff, new b2Vec2());
       g_camera.m_center.Copy(center);
     }
   }
 
   public HandleMouseDown(e: MouseEvent): void {
     const rect = this.m_canvas_2d.getBoundingClientRect();
-    const element: box2d.b2Vec2 = new box2d.b2Vec2(this.getMouseX(e.clientX), this.getMouseY(e.clientY));
-    const world: box2d.b2Vec2 = g_camera.ConvertScreenToWorld(element, new box2d.b2Vec2());
+    const element: b2Vec2 = new b2Vec2(this.getMouseX(e.clientX), this.getMouseY(e.clientY));
+    const world: b2Vec2 = g_camera.ConvertScreenToWorld(element, new b2Vec2());
 
     switch (e.buttons) {
     case 1: // left mouse button
@@ -233,7 +234,7 @@ export class Main {
       break;
     case 2: // right mouse button
       this.m_rMouseDown = true;
-      const projection: box2d.b2Vec2 = g_camera.ConvertElementToProjection(element, new box2d.b2Vec2());
+      const projection: b2Vec2 = g_camera.ConvertElementToProjection(element, new b2Vec2());
       this.m_projection0.Copy(projection);
       this.m_viewCenter0.Copy(g_camera.m_center);
       break;
@@ -241,8 +242,8 @@ export class Main {
   }
 
   public HandleMouseUp(e: MouseEvent): void {
-    const element: box2d.b2Vec2 = new box2d.b2Vec2(e.clientX, e.clientY);
-    const world: box2d.b2Vec2 = g_camera.ConvertScreenToWorld(element, new box2d.b2Vec2());
+    const element: b2Vec2 = new b2Vec2(e.clientX, e.clientY);
+    const world: b2Vec2 = g_camera.ConvertScreenToWorld(element, new b2Vec2());
 
     switch (e.which) {
     case 1: // left mouse button
@@ -256,15 +257,15 @@ export class Main {
   }
 
   public HandleTouchMove(e: TouchEvent): void {
-    const element: box2d.b2Vec2 = new box2d.b2Vec2(this.getMouseX(e.touches[0].clientX), this.getMouseY(e.touches[0].clientY));
-    const world: box2d.b2Vec2 = g_camera.ConvertScreenToWorld(element, new box2d.b2Vec2());
+    const element: b2Vec2 = new b2Vec2(this.getMouseX(e.touches[0].clientX), this.getMouseY(e.touches[0].clientY));
+    const world: b2Vec2 = g_camera.ConvertScreenToWorld(element, new b2Vec2());
     if (this.map) { this.map.MouseMove(world); }
     e.preventDefault();
   }
 
   public HandleTouchStart(e: TouchEvent): void {
-    const element: box2d.b2Vec2 = new box2d.b2Vec2(this.getMouseX(e.touches[0].clientX), this.getMouseY(e.touches[0].clientY));
-    const world: box2d.b2Vec2 = g_camera.ConvertScreenToWorld(element, new box2d.b2Vec2());
+    const element: b2Vec2 = new b2Vec2(this.getMouseX(e.touches[0].clientX), this.getMouseY(e.touches[0].clientY));
+    const world: b2Vec2 = g_camera.ConvertScreenToWorld(element, new b2Vec2());
     if (this.map) { this.map.MouseDown(world); }
     e.preventDefault();
   }
