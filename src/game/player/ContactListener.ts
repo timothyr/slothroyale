@@ -35,7 +35,7 @@ export const playerPreSolve = (contact: b2Contact, fixtureA: b2Fixture, fixtureB
     if (playerMovement.minAngle < angle && angle < playerMovement.maxAngle
       // Let the player move down any hill
       || playerMovement.moveX === MoveX.RIGHT && playerMovement.minAngle > angle
-      || playerMovement.moveX === MoveX.LEFT &&  angle > playerMovement.maxAngle) {
+      || playerMovement.moveX === MoveX.LEFT && angle > playerMovement.maxAngle) {
       // Add velocity
       surfaceVelocityModifier += playerMovement.velocity;
     }
@@ -63,7 +63,9 @@ export const playerPreSolve = (contact: b2Contact, fixtureA: b2Fixture, fixtureB
  * @param userDataA User Data of Fixture A
  * @param userDataB User Data of Fixture B
  */
-export const playerBeginContact = (contact: b2Contact, fixtureA: b2Fixture, fixtureB: b2Fixture, userDataA: UserData, userDataB: UserData): number => {
+export const playerBeginContact = (contact: b2Contact,
+                                   fixtureA: b2Fixture, fixtureB: b2Fixture,
+                                   userDataA: UserData, userDataB: UserData): number => {
 
   let playerMovementA: PlayerMovement = null;
   let playerMovementB: PlayerMovement = null;
@@ -97,7 +99,9 @@ export const playerBeginContact = (contact: b2Contact, fixtureA: b2Fixture, fixt
  * @param userDataA User Data of Fixture A
  * @param userDataB User Data of Fixture B
  */
-export const playerEndContact = (contact: b2Contact, fixtureA: b2Fixture, fixtureB: b2Fixture, userDataA: UserData, userDataB: UserData): number => {
+export const playerEndContact = (contact: b2Contact,
+                                 fixtureA: b2Fixture, fixtureB: b2Fixture,
+                                 userDataA: UserData, userDataB: UserData): number => {
 
   let playerMovementA: PlayerMovement = null;
   let playerMovementB: PlayerMovement = null;

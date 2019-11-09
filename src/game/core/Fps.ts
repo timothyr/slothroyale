@@ -1,31 +1,31 @@
 export class Fps {
-  public m_fps_time = 0;
-  public m_fps_frames = 0;
-  public m_fps = 0;
-  public m_fps_div: HTMLDivElement;
+  public fpsTime = 0;
+  public fpsFrames = 0;
+  public fps = 0;
+  public fpsDiv: HTMLDivElement;
 
   constructor() {
-    const fps_div: HTMLDivElement = this.m_fps_div = document.body.appendChild(document.createElement('div'));
-    fps_div.style.position = 'absolute';
-    fps_div.style.right = '0px';
-    fps_div.style.top = '0px';
-    fps_div.style.backgroundColor = 'rgba(0,0,255,0.75)';
-    fps_div.style.color = 'white';
-    fps_div.style.font = '10pt Courier New';
-    fps_div.style.zIndex = '256';
-    fps_div.innerHTML = 'FPS';
+    this.fpsDiv = document.body.appendChild(document.createElement('div'));
+    this.fpsDiv.style.position = 'absolute';
+    this.fpsDiv.style.right = '0px';
+    this.fpsDiv.style.top = '0px';
+    this.fpsDiv.style.backgroundColor = 'rgba(0,0,255,0.75)';
+    this.fpsDiv.style.color = 'white';
+    this.fpsDiv.style.font = '10pt Courier New';
+    this.fpsDiv.style.zIndex = '256';
+    this.fpsDiv.innerHTML = 'FPS';
   }
 
-  public Update(time_elapsed: number): void {
-    this.m_fps_time += time_elapsed;
-    this.m_fps_frames++;
+  public Update(timeElapsed: number): void {
+    this.fpsTime += timeElapsed;
+    this.fpsFrames++;
 
-    if (this.m_fps_time >= 500) {
-      this.m_fps = (this.m_fps_frames * 1000) / this.m_fps_time;
-      this.m_fps_frames = 0;
-      this.m_fps_time = 0;
+    if (this.fpsTime >= 500) {
+      this.fps = (this.fpsFrames * 1000) / this.fpsTime;
+      this.fpsFrames = 0;
+      this.fpsTime = 0;
 
-      this.m_fps_div.innerHTML = this.m_fps.toFixed(1).toString();
+      this.fpsDiv.innerHTML = this.fps.toFixed(1).toString();
     }
   }
 }
