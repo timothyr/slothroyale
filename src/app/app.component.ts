@@ -7,14 +7,12 @@ import { Main } from '@game/core/Main';
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent implements AfterViewInit {
-  @ViewChild('canvas') public canvas: ElementRef;
-
-  private ctx: CanvasRenderingContext2D;
 
   public ngAfterViewInit(): void {
-    const canvasEl: HTMLCanvasElement = this.canvas.nativeElement;
-    this.ctx = canvasEl.getContext('2d');
+    this.startGameLoop();
+  }
 
+  public startGameLoop(): void {
     let game: Main;
 
     const loop = (time: number) => {
@@ -23,7 +21,7 @@ export class AppComponent implements AfterViewInit {
     };
 
     const init = (time: number) => {
-      game = new Main(time, canvasEl);
+      game = new Main(time);
       window.requestAnimationFrame(loop);
     };
 
