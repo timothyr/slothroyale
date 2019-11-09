@@ -1,4 +1,4 @@
-import { Input } from './Input';
+import { Input } from './InputTypes';
 import { b2DestructionListener, b2Joint, b2Fixture, b2Vec2, b2PointState, b2ContactListener, b2World, b2BodyDef, b2MouseJoint, b2Body, b2MakeArray, b2DrawFlags, b2Color, b2BodyType, b2MouseJointDef } from '@flyover/box2d';
 
 export class Settings {
@@ -78,7 +78,7 @@ export class MapBase extends b2ContactListener {
   }
 
   public m_world: b2World;
-  
+
   // Mouse
   public m_mouseJoint: b2MouseJoint | null = null;
   public readonly m_mouseWorld: b2Vec2 = new b2Vec2();
