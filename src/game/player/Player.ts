@@ -1,11 +1,14 @@
 import { Input, MoveX, MoveY } from '@game/core/InputTypes';
 import * as PIXI from 'pixi.js';
-import { b2Vec2, b2Body, b2World, b2Sin, b2Cos, b2DegToRad, b2Max, b2Min, b2Fixture, b2BodyType, b2BodyDef, b2PolygonShape, b2CircleShape, b2FixtureDef } from '@flyover/box2d';
+import {
+  b2Vec2, b2Body, b2World, b2Sin, b2Cos, b2DegToRad, b2Max, b2Min, b2Fixture,
+  b2BodyType, b2BodyDef, b2PolygonShape, b2CircleShape, b2FixtureDef
+} from '@flyover/box2d';
 import { UserData, ObjectType } from '@game/object/UserData';
 import { GameObject } from '@game/object/GameObject';
 
-const PLAYER_MIN_ANGLE = -90 - 82;//- 70;
-const PLAYER_MAX_ANGLE = -90 + 82;//+ 70;
+const PLAYER_MIN_ANGLE = -90 - 82; // - 70;
+const PLAYER_MAX_ANGLE = -90 + 82; // + 70;
 
 const AIM_MIN_ANGLE = 0;
 const AIM_MAX_ANGLE = 180;
@@ -135,8 +138,6 @@ export class Player extends GameObject {
     }
 
     if (input.jump && this.jumpTimer === 0 && this.canJump()) {
-      const debug_pos = this.body.GetPosition();
-      console.log("body pos", debug_pos.x, debug_pos.y);
       const dir: number = this.sensorFixture.GetUserData().direction;
       this.body.ApplyLinearImpulse(new b2Vec2(this.body.GetMass() * 2 * dir, this.body.GetMass() * 5), this.body.GetWorldCenter());
       this.jumpTimer = 50;

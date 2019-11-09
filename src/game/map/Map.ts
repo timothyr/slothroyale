@@ -1,7 +1,10 @@
 import { MapBase, Settings } from '@game/core/MapBase';
 import { Input } from '@game/core/InputTypes';
 import { Player } from '@game/player/Player';
-import { b2Fixture, b2Vec2, b2AABB, b2Contact, b2Sin, b2Cos, b2DegToRad, b2BodyDef, b2PolygonShape, b2FixtureDef, b2BodyType, b2CircleShape, b2ContactListener } from '@flyover/box2d';
+import {
+  b2Fixture, b2Vec2, b2AABB, b2Contact, b2Sin, b2Cos, b2DegToRad, b2BodyDef,
+  b2PolygonShape, b2FixtureDef, b2BodyType, b2CircleShape, b2ContactListener
+} from '@flyover/box2d';
 import { GenerateMap } from '@game/map/map-generation/MapGenerator';
 import { DrawPolygon, RemovePolygon } from '@game/graphics/Draw';
 import { gfx, metersToPixel } from '@game/graphics/Pixi';
@@ -31,7 +34,7 @@ export class Map extends MapBase {
 
       // Create player
       const playerPosition = new b2Vec2(0, this.mapHeightPx / this.mapSizeMultiplier);
-      this.player = new Player(this.m_world, playerPosition);
+      this.player = new Player(this.world, playerPosition);
 
       // Set eventhandlers for map
       this.addMapEventHandlers();
@@ -143,7 +146,7 @@ export class Map extends MapBase {
     // Box2D Physics
 
     const bd = new b2BodyDef();
-    const ground = this.m_world.CreateBody(bd);
+    const ground = this.world.CreateBody(bd);
 
     // Set shape
     const shape = new b2PolygonShape();
@@ -175,7 +178,7 @@ export class Map extends MapBase {
     }
 
     // Remove physics object
-    this.m_world.DestroyBody(fixture.GetBody());
+    this.world.DestroyBody(fixture.GetBody());
 
     // Remove Pixi sprite from stage
     if (userData.displayObject) {
@@ -205,7 +208,7 @@ export class Map extends MapBase {
         const gy = playerPosition.y - (2 * b2Cos(b2DegToRad(this.player.aimAngle)));
         const grenadePosition = new b2Vec2(gx, gy);
 
-        const grenade = new Grenade(this.m_world, grenadePosition, this.player.aimAngle, this.player.direction);
+        const grenade = new Grenade(this.world, grenadePosition, this.player.aimAngle, this.player.direction);
 
         this.gameObjects.push(grenade);
 
@@ -250,7 +253,7 @@ export class Map extends MapBase {
 
     const poly1: any[] = [{ x: x - 1, y: y - 1 }, { x: x - 1, y: y + 1 }, { x: x + 1, y: y + 1 }, { x: x + 1, y: y - 1 }];
 
-    const res: DestroyedGroundResult = DestroyGround(aabb, poly1, this.m_world);
+    const res: DestroyedGroundResult = DestroyGround(aabb, poly1, this.world);
 
     // Create the new ground
     res.polygonsToAdd.forEach((poly: b2Vec2[]) => this.CreateGroundPoly(poly));
@@ -261,10 +264,10 @@ export class Map extends MapBase {
 
   public MouseDown(p: b2Vec2): boolean {
     // Pick up Dynamic bodies
-    const hit_fixture = super.MouseDown(p);
+    const hitFixture = super.MouseDown(p);
 
     // If we didn't hit a body, destroy ground
-    if (!hit_fixture) {
+    if (!hitFixture) {
 
       // Testing: Destroy 2x2 block of ground on mouse press
       const aabb: b2AABB = new b2AABB();
@@ -273,7 +276,7 @@ export class Map extends MapBase {
 
       const poly1: any[] = [{ x: p.x - 1, y: p.y - 1 }, { x: p.x - 1, y: p.y + 1 }, { x: p.x + 1, y: p.y + 1 }, { x: p.x + 1, y: p.y - 1 }];
 
-      const res: DestroyedGroundResult = DestroyGround(aabb, poly1, this.m_world);
+      const res: DestroyedGroundResult = DestroyGround(aabb, poly1, this.world);
 
       // Create the new ground
       res.polygonsToAdd.forEach((poly: b2Vec2[]) => this.CreateGroundPoly(poly));
@@ -282,7 +285,7 @@ export class Map extends MapBase {
       res.fixturesToDelete.forEach((fixture: b2Fixture) => this.DestroyGroundPoly(fixture));
     }
 
-    return hit_fixture;
+    return hitFixture;
   }
 
   public CreateCircles(numCircles: number): void {
@@ -290,7 +293,7 @@ export class Map extends MapBase {
     for (let i = 0; i < numCircles; i++) {
       const bd = new b2BodyDef();
       bd.type = b2BodyType.b2_dynamicBody;
-      const body = this.m_world.CreateBody(bd);
+      const body = this.world.CreateBody(bd);
       const shape = new b2CircleShape();
       shape.m_p.Set(0, 10 * (i + 1));
       shape.m_radius = 4;
@@ -301,7 +304,7 @@ export class Map extends MapBase {
   public CreateRamp(): void {
     {
       const bd = new b2BodyDef();
-      const ground = this.m_world.CreateBody(bd);
+      const ground = this.world.CreateBody(bd);
 
       // Right slope
       {
@@ -335,7 +338,7 @@ export class Map extends MapBase {
     // Create the walls of the world.
     {
       const bd = new b2BodyDef();
-      const ground = this.m_world.CreateBody(bd);
+      const ground = this.world.CreateBody(bd);
 
       {
         const shape = new b2PolygonShape();
@@ -440,6 +443,6 @@ export class Map extends MapBase {
       playerPreSolve(contact, fixtureA, fixtureB, userDataA, userDataB);
     };
 
-    this.m_world.SetContactListener(listener);
+    this.world.SetContactListener(listener);
   }
 }
