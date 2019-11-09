@@ -1,5 +1,5 @@
 import { MapBase, Settings } from '@game/core/MapBase';
-import { Input } from '@game/core/Input';
+import { Input } from '@game/core/InputTypes';
 import { Player } from '@game/player/Player';
 import { b2Fixture, b2Vec2, b2AABB, b2Contact, b2Sin, b2Cos, b2DegToRad, b2BodyDef, b2PolygonShape, b2FixtureDef, b2BodyType, b2CircleShape, b2ContactListener } from '@flyover/box2d';
 import { GenerateMap } from '@game/map/map-generation/MapGenerator';
