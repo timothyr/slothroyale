@@ -14,6 +14,7 @@ import { playerPreSolve, playerEndContact, playerBeginContact } from '@game/play
 import { GameObject } from '@game/object/GameObject';
 import { Grenade } from '@game/weapon/Grenade';
 import { projectileBeginContact } from '@game/weapon/ContactListener';
+import { Point } from 'pixi.js';
 
 export class Map extends MapBase {
 
@@ -60,6 +61,10 @@ export class Map extends MapBase {
   mapWidthPx = 1280;
   mapHeightPx = 612;
   mapClipper: any;
+  mapPivot: Point = new Point(0, 0);
+  mouseDragPos: Point = new Point(0, 0);
+  draggingMap = false;
+
 
   player: Player = null;
   playerFireCooldown = false;
@@ -71,25 +76,27 @@ export class Map extends MapBase {
     return new Map();
   }
 
+  screenToWorldPos(event): b2Vec2 {
+    const x = event.data.getLocalPosition(gfx.stage).x / gfx.metersToPixel;
+    const y = event.data.getLocalPosition(gfx.stage).y / gfx.metersToPixel;
+
+    return new b2Vec2(x, -y);
+  }
+
   // Add mouse and touch handlers for map
   addMapEventHandlers(): void {
     gfx.renderer.plugins.interaction.on('mousedown', (e) => this.onMapMouseDown(e));
     gfx.renderer.plugins.interaction.on('pointerdown', (e) => this.onMapMouseDown(e));
     gfx.renderer.plugins.interaction.on('mouseup', (e) => this.onMapMouseUp(e));
-  }
-
-  onMapMouseDown(event: PIXI.interaction.InteractionEvent): void {
-    this.MouseDown(this.screenToWorldPos(event));
-  }
-
-  onMapMouseUp(event: PIXI.interaction.InteractionEvent): void {
-    this.MouseUp(this.screenToWorldPos(event));
+    gfx.renderer.plugins.interaction.on('mousemove', (e) => this.onMapDragMove(e));
+    gfx.renderer.plugins.interaction.on('touchmove', (e) => this.onMapDragMove(e));
   }
 
   onPlayerDragStart(event: PIXI.interaction.InteractionEvent): void {
     event.stopPropagation();
     this.player.getSprite().alpha = 0.5;
     this.MouseDown(this.screenToWorldPos(event));
+    this.draggingMap = false;
   }
 
   onPlayerDragEnd(event: PIXI.interaction.InteractionEvent): void {
@@ -103,10 +110,45 @@ export class Map extends MapBase {
     this.MouseMove(this.screenToWorldPos(event));
   }
 
-  screenToWorldPos(event): b2Vec2 {
-    const x = (event.data.global.x - gfx.stage.position.x) / gfx.metersToPixel;
-    const y = (event.data.global.y - gfx.stage.position.y) / gfx.metersToPixel;
-    return new b2Vec2(x, -y);
+  // Touch map
+
+  onMapMouseDown(event: PIXI.interaction.InteractionEvent): void {
+    const hit = this.MouseDown(this.screenToWorldPos(event));
+    if (!hit) {
+      this.onMapDragStart(event);
+    }
+  }
+
+  onMapMouseUp(event: PIXI.interaction.InteractionEvent): void {
+    if (this.draggingMap) {
+      this.onMapDragEnd(event);
+    }
+  }
+
+  // Drag map to move
+
+  onMapDragStart(event: PIXI.interaction.InteractionEvent): void {
+    event.data.global.copyTo(this.mouseDragPos);
+    this.draggingMap = true;
+  }
+
+  onMapDragEnd(event: PIXI.interaction.InteractionEvent): void {
+    this.draggingMap = false;
+  }
+
+  onMapDragMove(event: PIXI.interaction.InteractionEvent): void {
+    event.stopPropagation();
+    if (this.draggingMap) {
+      const nextMouseDragPos = event.data.global.clone();
+      const dragX = this.mouseDragPos.x - nextMouseDragPos.x;
+      const dragY = this.mouseDragPos.y - nextMouseDragPos.y;
+
+      this.mouseDragPos = nextMouseDragPos;
+
+      this.mapPivot.set(this.mapPivot.x + dragX, this.mapPivot.y + dragY);
+
+      gfx.stage.pivot = this.mapPivot;
+    }
   }
 
   /**

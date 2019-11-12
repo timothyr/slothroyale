@@ -125,7 +125,7 @@ export class MapBase extends b2ContactListener {
         const inside = fixture.TestPoint(p);
         if (inside) {
           hitFixture = fixture;
-          console.log("hit");
+          // console.log("hit");
 
           return false; // We are done, terminate the query.
         }
