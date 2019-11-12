@@ -28,23 +28,23 @@ clipperLib.loadNativeClipperLibInstanceAsync(
 });
 
 export interface DestroyedGroundResult {
-  polygonsToAdd: b2Vec2[][]
-  fixturesToDelete: b2Fixture[]
-};
+  polygonsToAdd: b2Vec2[][];
+  fixturesToDelete: b2Fixture[];
+}
 
 /**
  * Cut away ground polygons from an explosion polygon
  * @param aabb Bounding box around the polygon
  * @param polygon Polygon to destroy ground with
- * @param m_world b2World instance
+ * @param world b2World instance
  */
-export function DestroyGround(aabb: b2AABB, polygon: b2Vec2[], m_world): DestroyedGroundResult {
+export function DestroyGround(aabb: b2AABB, polygon: b2Vec2[], world): DestroyedGroundResult {
 
   // Convert polygon from box2d format to Clipper format
   polygon.map(b2Vec2ToClipper);
 
   // Get list of fixtures in the area of polygon
-  const fixtures: b2Fixture[] = m_world.QueryAllAABB(aabb);
+  const fixtures: b2Fixture[] = world.QueryAllAABB(aabb);
   const polygonsToAdd: b2Vec2[][] = [];
   const fixturesToDelete: b2Fixture[] = [];
 
