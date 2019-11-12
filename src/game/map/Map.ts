@@ -3,7 +3,7 @@ import { Input } from '@game/core/InputTypes';
 import { Player } from '@game/player/Player';
 import {
   b2Fixture, b2Vec2, b2AABB, b2Contact, b2Sin, b2Cos, b2DegToRad, b2BodyDef,
-  b2PolygonShape, b2FixtureDef, b2BodyType, b2CircleShape, b2ContactListener
+  b2PolygonShape, b2FixtureDef, b2BodyType, b2CircleShape, b2ContactListener, b2_pi
 } from '@flyover/box2d';
 import { GenerateMap } from '@game/map/map-generation/MapGenerator';
 import { DrawPolygon, RemovePolygon } from '@game/graphics/Draw';
@@ -241,19 +241,46 @@ export class Map extends MapBase {
     super.Step(settings, input);
   }
 
+  /**
+   * Generate n-gon polygon with numSides as n
+   * e.g. numSides = 8 for Octagon
+   * @param numSides Number of sides for polygon. 8 for Octagon
+   * @param size Size of polygon (box2d coords scale)
+   * @param centerX X coordinate for center of polygon
+   * @param centerY Y coordinate for center of polygon
+   */
+  generatePolygon(numSides, size, centerX, centerY): b2Vec2[] {
+    const polygon: b2Vec2[] = [];
+
+    for (let i = 0; i <= numSides; i++) {
+      const vx = (b2Cos(2 * i * b2_pi / numSides) * size) + centerX;
+      const vy = (b2Sin(2 * i * b2_pi / numSides) * size) + centerY;
+      const vec = new b2Vec2(vx, vy);
+      polygon.push(vec);
+    }
+
+    return polygon;
+  }
+
   projectileExplode(gameObject: GameObject): void {
+    const gameObjectPos = gameObject.getPosition();
 
-    const x = gameObject.getPosition().x;
-    const y = gameObject.getPosition().y;
+    const x = gameObjectPos.x;
+    const y = gameObjectPos.y;
 
-    // Testing: Destroy 2x2 block of ground on mouse press
+    const explosionSize = 3;
+
+    // Create square AABB to select all potentially affected ground objects
     const aabb: b2AABB = new b2AABB();
-    aabb.lowerBound.Copy(new b2Vec2(x - 1, y - 1));
-    aabb.upperBound.Copy(new b2Vec2(x + 1, y + 1));
+    aabb.lowerBound.Copy(new b2Vec2(x - explosionSize, y - explosionSize));
+    aabb.upperBound.Copy(new b2Vec2(x + explosionSize, y + explosionSize));
 
-    const poly1: any[] = [{ x: x - 1, y: y - 1 }, { x: x - 1, y: y + 1 }, { x: x + 1, y: y + 1 }, { x: x + 1, y: y - 1 }];
+    // Create polygon
+    const numSides = 15;
+    const polygon = this.generatePolygon(numSides, explosionSize, x, y);
 
-    const res: DestroyedGroundResult = DestroyGround(aabb, poly1, this.world);
+    // Get destroyed result from polygon
+    const res: DestroyedGroundResult = DestroyGround(aabb, polygon, this.world);
 
     // Create the new ground
     res.polygonsToAdd.forEach((poly: b2Vec2[]) => this.CreateGroundPoly(poly));
@@ -268,21 +295,7 @@ export class Map extends MapBase {
 
     // If we didn't hit a body, destroy ground
     if (!hitFixture) {
-
-      // Testing: Destroy 2x2 block of ground on mouse press
-      const aabb: b2AABB = new b2AABB();
-      aabb.lowerBound.Copy(new b2Vec2(p.x - 1, p.y - 1));
-      aabb.upperBound.Copy(new b2Vec2(p.x + 1, p.y + 1));
-
-      const poly1: any[] = [{ x: p.x - 1, y: p.y - 1 }, { x: p.x - 1, y: p.y + 1 }, { x: p.x + 1, y: p.y + 1 }, { x: p.x + 1, y: p.y - 1 }];
-
-      const res: DestroyedGroundResult = DestroyGround(aabb, poly1, this.world);
-
-      // Create the new ground
-      res.polygonsToAdd.forEach((poly: b2Vec2[]) => this.CreateGroundPoly(poly));
-
-      // Destroy the old ground
-      res.fixturesToDelete.forEach((fixture: b2Fixture) => this.DestroyGroundPoly(fixture));
+      // Put click test here
     }
 
     return hitFixture;
