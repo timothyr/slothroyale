@@ -11,7 +11,7 @@ export async function GenerateMap() {
       debug: false,
       width,
       height,
-      terrainTypeImg: './assets/type-1.png',
+      terrainTypeImg: './assets/type-3.png',
       noiseResolution: 35
     });
 
