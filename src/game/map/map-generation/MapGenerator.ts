@@ -1,4 +1,5 @@
 import { TerrainGenerator } from '@game/map/map-generation/TerrainVer/TerrainGenerator.js';
+import { PositionGenerator } from '@game/map/map-generation/TerrainVer/PositionGenerator.js';
 import * as hxGeom from '@game/map/map-generation/hxGeomAlgo/hxGeomAlgo.js';
 import * as marchingsquares from '@game/map/map-generation/MarchingSquaresJS/MarchingSquares.js';
 
@@ -19,10 +20,13 @@ export async function GenerateMap() {
     console.log('seed', seed);
 
     let polygons;
+    let playerPositionGenerator;
     let success = false;
     while (!success) {
       try {
-        polygons = GenerateTerrain(terrainGenerator, seed, width, height);
+        const terrain = GenerateTerrain(terrainGenerator, seed, width, height);
+        polygons = terrain.polygons;
+        playerPositionGenerator = terrain.playerPositionGenerator;
         success = true;
       } catch (err) {
         seed += 0.001;
@@ -30,7 +34,7 @@ export async function GenerateMap() {
       }
     }
 
-    return {width, height, polygons};
+    return {width, height, polygons, playerPositionGenerator};
 }
 
 function GenerateTerrain(terrainGenerator, seed, width, height) {
@@ -40,6 +44,9 @@ function GenerateTerrain(terrainGenerator, seed, width, height) {
     // Get generated terrain from Canvas
     let shapeData = terrainShape.getContext('2d').getImageData(0, 0, terrainShape.width, terrainShape.height);
     const terrainData = shapeData.data; // this.terrainShape.data
+
+    // Get position generator from generated terrain
+    const playerPositionGenerator = new PositionGenerator(shapeData);
 
     // Fresh image to draw on
     const terr = new ImageData(terrainShape.width, terrainShape.height);
@@ -180,7 +187,7 @@ function GenerateTerrain(terrainGenerator, seed, width, height) {
       polygons.push(...hullPolygons);
     });
 
-    return polygons;
+    return {polygons, playerPositionGenerator};
 }
 
 /**

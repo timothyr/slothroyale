@@ -30,12 +30,28 @@ export class Map extends MapBase {
       this.mapWidthPx = map.width;
       this.mapHeightPx = map.height;
 
+      // Get player position generator for map
+      this.playerPositionGenerator = map.playerPositionGenerator;
+
       // Create all ground polygons
       map.polygons.forEach(polyShape => this.CreateMapPoly(polyShape));
 
       // Create player
-      const playerPosition = new b2Vec2(0, this.mapHeightPx / this.mapSizeMultiplier);
+      const playerGenPos = this.playerPositionGenerator.getSurfacePoint(0.1);
+      const playerPosX = (playerGenPos[0] / this.mapSizeMultiplier) - ((this.mapWidthPx / 2) / this.mapSizeMultiplier);
+      const playerPosY = (playerGenPos[1] / -this.mapSizeMultiplier) - ((this.mapHeightPx / 2) / -this.mapSizeMultiplier);
+      const playerPosition = new b2Vec2(playerPosX, playerPosY);
       this.player = new Player(this.world, playerPosition);
+
+      // Generate other random players
+      for (let i = 0; i < 5; i++) {
+        const randPlayerGenPos = this.playerPositionGenerator.getSurfacePoint(0.1);
+        const randPlayerPosX = (randPlayerGenPos[0] / this.mapSizeMultiplier) - ((this.mapWidthPx / 2) / this.mapSizeMultiplier);
+        const randPlayerPosY = (randPlayerGenPos[1] / -this.mapSizeMultiplier) - ((this.mapHeightPx / 2) / -this.mapSizeMultiplier);
+        const randPlayerPosition = new b2Vec2(randPlayerPosX, randPlayerPosY);
+        const randPlayer = new Player(this.world, randPlayerPosition);
+        this.gameObjects.push(randPlayer);
+      }
 
       // Set eventhandlers for map
       this.addMapEventHandlers();
@@ -65,7 +81,7 @@ export class Map extends MapBase {
   mouseDragPos: Point = new Point(0, 0);
   draggingMap = false;
 
-
+  playerPositionGenerator;
   player: Player = null;
   playerFireCooldown = false;
   gameObjects: GameObject[] = [];
