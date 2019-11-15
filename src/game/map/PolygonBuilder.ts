@@ -30,6 +30,8 @@ export function generateCircularPolygon(numSides, size, centerX, centerY): b2Vec
  */
 export function CreateGroundPoly(polygon: b2Vec2[], world: b2World): void {
 
+  console.log(polygon);
+
   // Pixi Graphics
 
   const pixiVertices: number[] = [];

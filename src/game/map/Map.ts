@@ -30,6 +30,8 @@ export class Map extends MapBase {
       // Get player position generator for map
       this.playerPositionGenerator = map.playerPositionGenerator;
 
+      console.log(map);
+
       // Create all ground polygons
       map.polygons.forEach(polyShape => this.CreateMapPoly(polyShape));
 
@@ -54,18 +56,7 @@ export class Map extends MapBase {
       this.addMapEventHandlers();
 
       // Set eventhandlers for player
-      this.player.getSprite()
-        // events for drag start
-        .on('mousedown', (event) => this.onPlayerDragStart(event))
-        .on('touchstart', (event) => this.onPlayerDragStart(event))
-        // events for drag end
-        .on('mouseup', (event) => this.onPlayerDragEnd(event))
-        .on('mouseupoutside', (event) => this.onPlayerDragEnd(event))
-        .on('touchend', (event) => this.onPlayerDragEnd(event))
-        .on('touchendoutside', (event) => this.onPlayerDragEnd(event))
-        // events for drag move
-        .on('mousemove', (event) => this.onPlayerDragMove(event))
-        .on('touchmove', (event) => this.onPlayerDragMove(event));
+      this.addPlayerEventHandlers();
     });
   }
 
@@ -252,6 +243,22 @@ export class Map extends MapBase {
 
   // Player event handlers
 
+  addPlayerEventHandlers() {
+    // Set eventhandlers for player
+    this.player.getSprite()
+      // events for drag start
+      .on('mousedown', (event) => this.onPlayerDragStart(event))
+      .on('touchstart', (event) => this.onPlayerDragStart(event))
+      // events for drag end
+      .on('mouseup', (event) => this.onPlayerDragEnd(event))
+      .on('mouseupoutside', (event) => this.onPlayerDragEnd(event))
+      .on('touchend', (event) => this.onPlayerDragEnd(event))
+      .on('touchendoutside', (event) => this.onPlayerDragEnd(event))
+      // events for drag move
+      .on('mousemove', (event) => this.onPlayerDragMove(event))
+      .on('touchmove', (event) => this.onPlayerDragMove(event));
+  }
+
   onPlayerDragStart(event: PIXI.interaction.InteractionEvent): void {
     event.stopPropagation();
     this.player.getSprite().alpha = 0.5;
@@ -274,7 +281,6 @@ export class Map extends MapBase {
 
   // Add mouse and touch handlers for map
   addMapEventHandlers(): void {
-    gfx.renderer.plugins.interaction.on('mousedown', (e) => this.onMapMouseDown(e));
     gfx.renderer.plugins.interaction.on('pointerdown', (e) => this.onMapMouseDown(e));
     gfx.renderer.plugins.interaction.on('mouseup', (e) => this.onMapMouseUp(e));
     gfx.renderer.plugins.interaction.on('mousemove', (e) => this.onMapDragMove(e));
@@ -330,6 +336,8 @@ export class Map extends MapBase {
     if (!hitFixture) {
       // Put click test here
     }
+
+    console.log("clicky");
 
     return hitFixture;
   }
