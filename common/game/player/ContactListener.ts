@@ -1,7 +1,7 @@
 import { b2Fixture, b2WorldManifold, b2Atan2, b2Vec2, b2Contact } from '@flyover/box2d';
 import { PlayerMovement } from './Player';
-import { MoveX } from '@game/core/InputTypes';
-import { UserData, ObjectType } from '@game/object/UserData';
+import { MoveX } from '../core/InputTypes';
+import { UserData, ObjectType } from '../object/UserData';
 
 /**
  * Apply player movement forces on contact

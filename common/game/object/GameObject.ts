@@ -1,5 +1,5 @@
 import { b2Body, b2World, b2Vec2, b2Fixture } from '@flyover/box2d';
-import { gfx } from '@game/graphics/Pixi';
+import { gfx } from '../graphics/Pixi';
 import { UserData } from './UserData';
 
 export abstract class GameObject {

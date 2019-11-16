@@ -1,5 +1,5 @@
 import * as PIXI from 'pixi.js';
-import { gfx } from '@game/graphics/Pixi';
+import { gfx } from './Pixi';
 
 export function DrawBorderPolygon(vertices: number[]): PIXI.DisplayObject {
   const graphics = new PIXI.Graphics();

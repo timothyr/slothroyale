@@ -1,8 +1,8 @@
-import { GameObject } from '@game/object/GameObject';
+import { GameObject } from '../object/GameObject';
 import { b2World, b2Body, b2BodyDef, b2BodyType, b2CircleShape, b2Vec2, b2Cos, b2DegToRad, b2Sin, b2FixtureDef } from '@flyover/box2d';
 import * as PIXI from 'pixi.js';
-import { metersToPixel } from '@game/graphics/Pixi';
-import { ObjectType, UserData } from '@game/object/UserData';
+import { metersToPixel } from '../graphics/Pixi';
+import { ObjectType, UserData } from '../object/UserData';
 
 const size = 0.5;
 

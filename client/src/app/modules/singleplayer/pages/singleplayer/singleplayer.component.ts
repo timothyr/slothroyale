@@ -1,5 +1,5 @@
 import { Component, AfterViewInit } from '@angular/core';
-import { Main } from '@game/core/Main';
+import { Main } from 'gamecommon/game/core/Main';
 
 @Component({
   selector: 'app-singleplayer',

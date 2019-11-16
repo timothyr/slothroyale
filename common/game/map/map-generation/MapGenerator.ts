@@ -1,7 +1,7 @@
-import { TerrainGenerator } from '@game/map/map-generation/TerrainVer/TerrainGenerator.js';
-import { PositionGenerator } from '@game/map/map-generation/TerrainVer/PositionGenerator.js';
-import * as hxGeom from '@game/map/map-generation/hxGeomAlgo/hxGeomAlgo.js';
-import * as marchingsquares from '@game/map/map-generation/MarchingSquaresJS/MarchingSquares.js';
+import { TerrainGenerator } from './TerrainVer/TerrainGenerator.js';
+import { PositionGenerator } from './TerrainVer/PositionGenerator.js';
+import * as hxGeom from './hxGeomAlgo/hxGeomAlgo.js';
+import * as marchingsquares from './MarchingSquaresJS/MarchingSquares.js';
 import { b2Vec2 } from '@flyover/box2d';
 import { MapOptions } from '../Map';
 

@@ -1,6 +1,6 @@
-import { MapBase, Settings } from '@game/core/MapBase';
-import { Map } from '@game/map/Map';
-import { Fps } from '@game/core/Fps';
+import { MapBase, Settings } from './MapBase';
+import { Map } from '../map/Map';
+import { Fps } from './Fps';
 import { Input, MoveX, MoveY } from './InputTypes';
 import { Controls } from './Controls';
 

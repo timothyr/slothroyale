@@ -1,7 +1,7 @@
 import { b2Vec2, b2Sin, b2_pi, b2Cos, b2BodyDef, b2PolygonShape, b2FixtureDef, b2Fixture, b2World } from '@flyover/box2d';
-import { metersToPixel } from '@game/graphics/Pixi';
-import { DrawPolygon, RemovePolygon } from '@game/graphics/Draw';
-import { UserData, ObjectType } from '@game/object/UserData';
+import { metersToPixel } from '../graphics/Pixi';
+import { DrawPolygon, RemovePolygon } from '../graphics/Draw';
+import { UserData, ObjectType } from '../object/UserData';
 
 /**
  * Generate n-gon polygon with numSides as n

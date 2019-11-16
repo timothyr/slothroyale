@@ -1,13 +1,5 @@
 {
   "compileOnSave": false,
-  "include": [
-    "../common/**/*.ts",
-    "src/**/*.ts"
-  ], 
-  "exclude": [
-    "node_modules",
-    "**/*.spec.ts"
-  ],
   "compilerOptions": {
     "baseUrl": "./",
     "outDir": "./dist/out-tsc",
@@ -27,8 +19,8 @@
       "dom"
     ],
     "paths" : {
-      "@app/*" : [
-          "src/app/*"
+      "@game/*" : [
+          "game/*"
       ]
     },
   }

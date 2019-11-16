@@ -1,11 +1,11 @@
-import { Input, MoveX, MoveY } from '@game/core/InputTypes';
+import { Input, MoveX, MoveY } from '../core/InputTypes';
 import * as PIXI from 'pixi.js';
 import {
   b2Vec2, b2Body, b2World, b2Sin, b2Cos, b2DegToRad, b2Max, b2Min, b2Fixture,
   b2BodyType, b2BodyDef, b2PolygonShape, b2CircleShape, b2FixtureDef
 } from '@flyover/box2d';
-import { UserData, ObjectType } from '@game/object/UserData';
-import { GameObject } from '@game/object/GameObject';
+import { UserData, ObjectType } from '../object/UserData';
+import { GameObject } from '../object/GameObject';
 
 const PLAYER_MIN_ANGLE = -90 - 82; // - 70;
 const PLAYER_MAX_ANGLE = -90 + 82; // + 70;

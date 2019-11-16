@@ -1,17 +1,17 @@
 import { b2Fixture, b2Vec2, b2AABB, b2Contact, b2Sin, b2Cos, b2DegToRad, b2ContactListener} from '@flyover/box2d';
-import { MapBase, Settings } from '@game/core/MapBase';
-import { Input } from '@game/core/InputTypes';
-import { GenerateMap } from '@game/map/map-generation/MapGenerator';
-import { generateCircularPolygon, CreateGroundPoly, DestroyGroundPoly } from '@game/map/PolygonBuilder';
-import { DestroyGround, DestroyedGroundResult } from '@game/map/DestroyGround';
-import { UserData } from '@game/object/UserData';
-import { Player } from '@game/player/Player';
-import { playerPreSolve, playerEndContact, playerBeginContact } from '@game/player/ContactListener';
-import { GameObject } from '@game/object/GameObject';
-import { Grenade } from '@game/weapon/Grenade';
-import { projectileBeginContact } from '@game/weapon/ContactListener';
+import { MapBase, Settings } from '../core/MapBase';
+import { Input } from '../core/InputTypes';
+import { GenerateMap } from './map-generation/MapGenerator';
+import { generateCircularPolygon, CreateGroundPoly, DestroyGroundPoly } from './PolygonBuilder';
+import { DestroyGround, DestroyedGroundResult } from './DestroyGround';
+import { UserData } from '../object/UserData';
+import { Player } from '../player/Player';
+import { playerPreSolve, playerEndContact, playerBeginContact } from '../player/ContactListener';
+import { GameObject } from '../object/GameObject';
+import { Grenade } from '../weapon/Grenade';
+import { projectileBeginContact } from '../weapon/ContactListener';
 import { Point } from 'pixi.js';
-import { gfx } from '@game/graphics/Pixi';
+import { gfx } from '../graphics/Pixi';
 
 export interface MapOptions {
   width: number;

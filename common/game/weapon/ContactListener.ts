@@ -1,5 +1,5 @@
 import { b2Fixture, b2Contact } from '@flyover/box2d';
-import { UserData, ObjectType } from '@game/object/UserData';
+import { UserData, ObjectType } from '../object/UserData';
 
 /**
  * Return list of projectiles that have collided with something
