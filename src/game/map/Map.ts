@@ -13,51 +13,27 @@ import { projectileBeginContact } from '@game/weapon/ContactListener';
 import { Point } from 'pixi.js';
 import { gfx } from '@game/graphics/Pixi';
 
+export interface MapOptions {
+  width: number;
+  height: number;
+  polygons: b2Vec2[][];
+  playerPositions: b2Vec2[];
+}
+
 export class Map extends MapBase {
 
-  constructor() {
+  constructor(mapOptions?: MapOptions) {
     super();
 
-    // Create contact listener for the world
-    this.CreateContactListener();
-
-    // Generate the map
-    GenerateMap().then((map) => {
-      // Create a physics polygon for each shape
-      this.mapWidthPx = map.width;
-      this.mapHeightPx = map.height;
-
-      // Get player position generator for map
-      this.playerPositionGenerator = map.playerPositionGenerator;
-
-      console.log(map);
-
-      // Create all ground polygons
-      map.polygons.forEach(polyShape => this.CreateMapPoly(polyShape));
-
-      // Create player
-      const playerGenPos = this.playerPositionGenerator.getSurfacePoint(0.1);
-      const playerPosX = (playerGenPos[0] / this.mapSizeMultiplier) - ((this.mapWidthPx / 2) / this.mapSizeMultiplier);
-      const playerPosY = (playerGenPos[1] / -this.mapSizeMultiplier) - ((this.mapHeightPx / 2) / -this.mapSizeMultiplier);
-      const playerPosition = new b2Vec2(playerPosX, playerPosY);
-      this.player = new Player(this.world, playerPosition);
-
-      // Generate other random players
-      for (let i = 0; i < 5; i++) {
-        const randPlayerGenPos = this.playerPositionGenerator.getSurfacePoint(0.1);
-        const randPlayerPosX = (randPlayerGenPos[0] / this.mapSizeMultiplier) - ((this.mapWidthPx / 2) / this.mapSizeMultiplier);
-        const randPlayerPosY = (randPlayerGenPos[1] / -this.mapSizeMultiplier) - ((this.mapHeightPx / 2) / -this.mapSizeMultiplier);
-        const randPlayerPosition = new b2Vec2(randPlayerPosX, randPlayerPosY);
-        const randPlayer = new Player(this.world, randPlayerPosition);
-        this.gameObjects.push(randPlayer);
-      }
-
-      // Set eventhandlers for map
-      this.addMapEventHandlers();
-
-      // Set eventhandlers for player
-      this.addPlayerEventHandlers();
-    });
+    // If map is supplied, use it
+    if (mapOptions) {
+      this.initMap(mapOptions);
+    } else {
+      // If no map is supplied, generate the map
+      GenerateMap().then((map) => {
+        this.initMap(map);
+      });
+    }
   }
 
   mapSizeMultiplier = 8;
@@ -67,7 +43,6 @@ export class Map extends MapBase {
   mouseDragPos: Point = new Point(0, 0);
   draggingMap = false;
 
-  playerPositionGenerator;
   player: Player = null;
   playerFireCooldown = false;
   gameObjects: GameObject[] = [];
@@ -75,6 +50,43 @@ export class Map extends MapBase {
 
   public static Create(): MapBase {
     return new Map();
+  }
+
+  private initMap(map: MapOptions): void {
+    // Create a physics polygon for each shape
+    this.mapWidthPx = map.width;
+    this.mapHeightPx = map.height;
+
+    console.log(map);
+
+    // Create all ground polygons
+    map.polygons.forEach(polyShape => this.CreateMapPoly(polyShape));
+
+    // Create player
+    const playerGenPos = map.playerPositions[0];
+    const playerPosX = (playerGenPos.x / this.mapSizeMultiplier) - ((this.mapWidthPx / 2) / this.mapSizeMultiplier);
+    const playerPosY = (playerGenPos.y / -this.mapSizeMultiplier) - ((this.mapHeightPx / 2) / -this.mapSizeMultiplier);
+    const playerPosition = new b2Vec2(playerPosX, playerPosY);
+    this.player = new Player(this.world, playerPosition);
+
+    // Generate other random players
+    for (let i = 1; i < 5; i++) {
+      const randPlayerGenPos = map.playerPositions[i];
+      const randPlayerPosX = (randPlayerGenPos.x / this.mapSizeMultiplier) - ((this.mapWidthPx / 2) / this.mapSizeMultiplier);
+      const randPlayerPosY = (randPlayerGenPos.y / -this.mapSizeMultiplier) - ((this.mapHeightPx / 2) / -this.mapSizeMultiplier);
+      const randPlayerPosition = new b2Vec2(randPlayerPosX, randPlayerPosY);
+      const randPlayer = new Player(this.world, randPlayerPosition);
+      this.gameObjects.push(randPlayer);
+    }
+
+    // Create contact listener for the world
+    this.CreateContactListener();
+
+    // Set eventhandlers for map
+    this.addMapEventHandlers();
+
+    // Set eventhandlers for player
+    this.addPlayerEventHandlers();
   }
 
   /**
@@ -132,7 +144,7 @@ export class Map extends MapBase {
     super.Step(settings, input);
   }
 
-  projectileExplode(gameObject: GameObject): void {
+  private projectileExplode(gameObject: GameObject): void {
     const gameObjectPos = gameObject.getPosition();
 
     const x = gameObjectPos.x;
@@ -178,7 +190,7 @@ export class Map extends MapBase {
 
   // --------- Collision -------------
 
-  public CreateContactListener(): void {
+  private CreateContactListener(): void {
     const listener = new b2ContactListener();
     listener.BeginContact = (contact: b2Contact) => {
       const fixtureA: b2Fixture = contact.GetFixtureA();
