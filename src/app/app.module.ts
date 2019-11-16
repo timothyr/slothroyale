@@ -3,6 +3,8 @@ import { NgModule } from '@angular/core';
 
 import { AppRoutingModule } from '@app/app-routing.module';
 import { AppComponent } from '@app/app.component';
+import { MultiplayerModule } from './modules/multiplayer/multiplayer.module';
+import { SingleplayerModule } from './modules/singleplayer/singleplayer.module';
 
 @NgModule({
   declarations: [
@@ -10,7 +12,9 @@ import { AppComponent } from '@app/app.component';
   ],
   imports: [
     BrowserModule,
-    AppRoutingModule
+    AppRoutingModule,
+    SingleplayerModule,
+    MultiplayerModule
   ],
   providers: [],
   bootstrap: [AppComponent]

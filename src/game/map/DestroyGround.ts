@@ -1,4 +1,4 @@
-import { b2AABB, b2Vec2, b2Fixture } from '@flyover/box2d';
+import { b2AABB, b2Vec2, b2Fixture, b2World } from '@flyover/box2d';
 import * as hxGeom from '@game/map/map-generation/hxGeomAlgo/hxGeomAlgo.js';
 import * as clipperLib from '@game/map/map-generation/js-angusj-clipper'; // es6 / typescript
 import { UserData, ObjectType } from '@game/object/UserData';
@@ -38,7 +38,7 @@ export interface DestroyedGroundResult {
  * @param polygon Polygon to destroy ground with
  * @param world b2World instance
  */
-export function DestroyGround(aabb: b2AABB, polygon: b2Vec2[], world): DestroyedGroundResult {
+export function DestroyGround(aabb: b2AABB, polygon: b2Vec2[], world: b2World): DestroyedGroundResult {
 
   // Convert polygon from box2d format to Clipper format
   polygon.map(b2Vec2ToClipper);
@@ -51,7 +51,7 @@ export function DestroyGround(aabb: b2AABB, polygon: b2Vec2[], world): Destroyed
   // Iterate over all fixtures that matched the intersection of polygon
   fixtures.forEach((fixture: b2Fixture) => {
 
-    // TODO check userdata of fixture and only continue if it is ground
+    // Check userdata of fixture and only continue if it is ground
     const userData: UserData = fixture.GetUserData() || null;
     if (!userData || userData.objectType !== ObjectType.GROUND) {
       return;
