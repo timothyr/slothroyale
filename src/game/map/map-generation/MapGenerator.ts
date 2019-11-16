@@ -1,8 +1,11 @@
 import { TerrainGenerator } from '@game/map/map-generation/TerrainVer/TerrainGenerator.js';
+import { PositionGenerator } from '@game/map/map-generation/TerrainVer/PositionGenerator.js';
 import * as hxGeom from '@game/map/map-generation/hxGeomAlgo/hxGeomAlgo.js';
 import * as marchingsquares from '@game/map/map-generation/MarchingSquaresJS/MarchingSquares.js';
+import { b2Vec2 } from '@flyover/box2d';
+import { MapOptions } from '../Map';
 
-export async function GenerateMap() {
+export async function GenerateMap(): Promise<MapOptions> {
     // Width & Height need to match image dimensions
     const width = 1024; // Make sure width is even
     const height = 612; // Make sure height is even
@@ -10,7 +13,7 @@ export async function GenerateMap() {
       debug: false,
       width,
       height,
-      terrainTypeImg: './assets/type-1.png',
+      terrainTypeImg: './assets/type-3.png',
       noiseResolution: 35
     });
 
@@ -18,11 +21,14 @@ export async function GenerateMap() {
     let seed = Math.random(); // 0.11211616096027699; 
     console.log('seed', seed);
 
-    let polygons;
+    let polygons: b2Vec2[][];
+    let playerPositions: b2Vec2[];
     let success = false;
     while (!success) {
       try {
-        polygons = GenerateTerrain(terrainGenerator, seed, width, height);
+        const terrain = GenerateTerrain(terrainGenerator, seed, width, height);
+        polygons = terrain.polygons;
+        playerPositions = terrain.playerPositions;
         success = true;
       } catch (err) {
         seed += 0.001;
@@ -30,7 +36,7 @@ export async function GenerateMap() {
       }
     }
 
-    return {width, height, polygons};
+    return {width, height, polygons, playerPositions};
 }
 
 function GenerateTerrain(terrainGenerator, seed, width, height) {
@@ -40,6 +46,9 @@ function GenerateTerrain(terrainGenerator, seed, width, height) {
     // Get generated terrain from Canvas
     let shapeData = terrainShape.getContext('2d').getImageData(0, 0, terrainShape.width, terrainShape.height);
     const terrainData = shapeData.data; // this.terrainShape.data
+
+    // Get position generator from generated terrain
+    const playerPositionGenerator = new PositionGenerator(shapeData);
 
     // Fresh image to draw on
     const terr = new ImageData(terrainShape.width, terrainShape.height);
@@ -180,7 +189,19 @@ function GenerateTerrain(terrainGenerator, seed, width, height) {
       polygons.push(...hullPolygons);
     });
 
-    return polygons;
+    // ---------- Generate player spawn positions -------------
+
+    const numPlayerPositions = 8;
+
+    const playerPositions: b2Vec2[] = [];
+
+    for (let i = 0; i < numPlayerPositions; i++) {
+      const playerPos = playerPositionGenerator.getSurfacePoint(0.1);
+      const playerPosb2Vec2: b2Vec2 = new b2Vec2(playerPos[0], playerPos[1]);
+      playerPositions.push(playerPosb2Vec2);
+    }
+
+    return {polygons, playerPositions};
 }
 
 /**

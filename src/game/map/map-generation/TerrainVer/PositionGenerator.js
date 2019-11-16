@@ -2,9 +2,9 @@ import convolution from './libs/webglConvolution.js'
 import { timer } from './utils.js'
 
 const DEFAULT_OPTIONS = {
-  marginTop: 40,  // don't generate position too high
+  marginTop: 1,  // don't generate position too high
   marginRight: 1,
-  marginBottom: 160,  // don't generate position in water
+  marginBottom: 1,  // don't generate position in water
   marginLeft: 1,
   debug: false
 }
@@ -30,7 +30,7 @@ function dist2 (a, b) {
 }
 
 // Generate pseudo-random(uniformly distributed) positions on a the surface of a given terrain
-export default class PositionGenerator {
+export class PositionGenerator {
 
   constructor (terrainShape, opts) {
     // Check options values

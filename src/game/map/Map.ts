@@ -1,189 +1,92 @@
+import { b2Fixture, b2Vec2, b2AABB, b2Contact, b2Sin, b2Cos, b2DegToRad, b2ContactListener} from '@flyover/box2d';
 import { MapBase, Settings } from '@game/core/MapBase';
 import { Input } from '@game/core/InputTypes';
-import { Player } from '@game/player/Player';
-import {
-  b2Fixture, b2Vec2, b2AABB, b2Contact, b2Sin, b2Cos, b2DegToRad, b2BodyDef,
-  b2PolygonShape, b2FixtureDef, b2BodyType, b2CircleShape, b2ContactListener
-} from '@flyover/box2d';
 import { GenerateMap } from '@game/map/map-generation/MapGenerator';
-import { DrawPolygon, RemovePolygon } from '@game/graphics/Draw';
-import { gfx, metersToPixel } from '@game/graphics/Pixi';
-import { DestroyGround, DestroyedGroundResult } from './DestroyGround';
-import { UserData, ObjectType } from '@game/object/UserData';
+import { generateCircularPolygon, CreateGroundPoly, DestroyGroundPoly } from '@game/map/PolygonBuilder';
+import { DestroyGround, DestroyedGroundResult } from '@game/map/DestroyGround';
+import { UserData } from '@game/object/UserData';
+import { Player } from '@game/player/Player';
 import { playerPreSolve, playerEndContact, playerBeginContact } from '@game/player/ContactListener';
 import { GameObject } from '@game/object/GameObject';
 import { Grenade } from '@game/weapon/Grenade';
 import { projectileBeginContact } from '@game/weapon/ContactListener';
+import { Point } from 'pixi.js';
+import { gfx } from '@game/graphics/Pixi';
+
+export interface MapOptions {
+  width: number;
+  height: number;
+  polygons: b2Vec2[][];
+  playerPositions: b2Vec2[];
+}
 
 export class Map extends MapBase {
 
-  constructor() {
+  constructor(mapOptions?: MapOptions) {
     super();
 
-    // Create contact listener for the world
-    this.CreateContactListener();
-
-    // Generate the map
-    GenerateMap().then((map) => {
-      // Create a physics polygon for each shape
-      this.mapWidthPx = map.width;
-      this.mapHeightPx = map.height;
-
-      // Create all ground polygons
-      map.polygons.forEach(polyShape => this.CreateMapPoly(polyShape));
-
-      // Create player
-      const playerPosition = new b2Vec2(0, this.mapHeightPx / this.mapSizeMultiplier);
-      this.player = new Player(this.world, playerPosition);
-
-      // Set eventhandlers for map
-      this.addMapEventHandlers();
-
-      // Set eventhandlers for player
-      this.player.getSprite()
-        // events for drag start
-        .on('mousedown', (event) => this.onPlayerDragStart(event))
-        .on('touchstart', (event) => this.onPlayerDragStart(event))
-        // events for drag end
-        .on('mouseup', (event) => this.onPlayerDragEnd(event))
-        .on('mouseupoutside', (event) => this.onPlayerDragEnd(event))
-        .on('touchend', (event) => this.onPlayerDragEnd(event))
-        .on('touchendoutside', (event) => this.onPlayerDragEnd(event))
-        // events for drag move
-        .on('mousemove', (event) => this.onPlayerDragMove(event))
-        .on('touchmove', (event) => this.onPlayerDragMove(event));
-    });
+    // If map is supplied, use it
+    if (mapOptions) {
+      this.initMap(mapOptions);
+    } else {
+      // If no map is supplied, generate the map
+      GenerateMap().then((map) => {
+        this.initMap(map);
+      });
+    }
   }
-
 
   mapSizeMultiplier = 8;
   mapWidthPx = 1280;
   mapHeightPx = 612;
-  mapClipper: any;
+  mapPivot: Point = new Point(0, 0);
+  mouseDragPos: Point = new Point(0, 0);
+  draggingMap = false;
 
   player: Player = null;
   playerFireCooldown = false;
   gameObjects: GameObject[] = [];
   gameObjectsToDestroy: GameObject[] = [];
 
-
   public static Create(): MapBase {
     return new Map();
   }
 
-  // Add mouse and touch handlers for map
-  addMapEventHandlers(): void {
-    gfx.renderer.plugins.interaction.on('mousedown', (e) => this.onMapMouseDown(e));
-    gfx.renderer.plugins.interaction.on('pointerdown', (e) => this.onMapMouseDown(e));
-    gfx.renderer.plugins.interaction.on('mouseup', (e) => this.onMapMouseUp(e));
-  }
+  private initMap(map: MapOptions): void {
+    // Create a physics polygon for each shape
+    this.mapWidthPx = map.width;
+    this.mapHeightPx = map.height;
 
-  onMapMouseDown(event: PIXI.interaction.InteractionEvent): void {
-    this.MouseDown(this.screenToWorldPos(event));
-  }
+    console.log(map);
 
-  onMapMouseUp(event: PIXI.interaction.InteractionEvent): void {
-    this.MouseUp(this.screenToWorldPos(event));
-  }
+    // Create all ground polygons
+    map.polygons.forEach(polyShape => this.CreateMapPoly(polyShape));
 
-  onPlayerDragStart(event: PIXI.interaction.InteractionEvent): void {
-    event.stopPropagation();
-    this.player.getSprite().alpha = 0.5;
-    this.MouseDown(this.screenToWorldPos(event));
-  }
+    // Create player
+    const playerGenPos = map.playerPositions[0];
+    const playerPosX = (playerGenPos.x / this.mapSizeMultiplier) - ((this.mapWidthPx / 2) / this.mapSizeMultiplier);
+    const playerPosY = (playerGenPos.y / -this.mapSizeMultiplier) - ((this.mapHeightPx / 2) / -this.mapSizeMultiplier);
+    const playerPosition = new b2Vec2(playerPosX, playerPosY);
+    this.player = new Player(this.world, playerPosition);
 
-  onPlayerDragEnd(event: PIXI.interaction.InteractionEvent): void {
-    event.stopPropagation();
-    this.player.getSprite().alpha = 1;
-    this.MouseUp(this.screenToWorldPos(event));
-  }
-
-  onPlayerDragMove(event: PIXI.interaction.InteractionEvent): void {
-    event.stopPropagation();
-    this.MouseMove(this.screenToWorldPos(event));
-  }
-
-  screenToWorldPos(event): b2Vec2 {
-    const x = (event.data.global.x - gfx.stage.position.x) / gfx.metersToPixel;
-    const y = (event.data.global.y - gfx.stage.position.y) / gfx.metersToPixel;
-    return new b2Vec2(x, -y);
-  }
-
-  /**
-   * Creates ground polygons that are sized based on map size multiplier
-   * @param polygon Ground polygon to create
-   */
-  private CreateMapPoly(polygon: b2Vec2[]): void {
-    const vertices: b2Vec2[] = polygon.map(v => {
-      // Center the polygons on the map
-      const x = (v.x / this.mapSizeMultiplier) - ((this.mapWidthPx / 2) / this.mapSizeMultiplier);
-      const y = (v.y / -this.mapSizeMultiplier) - ((this.mapHeightPx / 2) / -this.mapSizeMultiplier);
-
-      return new b2Vec2(x, y);
-    });
-
-    // Create the ground
-    this.CreateGroundPoly(vertices);
-  }
-
-  /**
-   * Creates ground polygons for the map
-   * @param polygon Ground polygon to create
-   */
-  public CreateGroundPoly(polygon: b2Vec2[]): void {
-
-    // Pixi Graphics
-
-    const pixiVertices: number[] = [];
-
-    polygon.forEach((v: b2Vec2) => {
-      pixiVertices.push(v.x * metersToPixel);
-      pixiVertices.push(-v.y * metersToPixel);
-    });
-
-    const displayObject = DrawPolygon(pixiVertices);
-
-    // Box2D Physics
-
-    const bd = new b2BodyDef();
-    const ground = this.world.CreateBody(bd);
-
-    // Set shape
-    const shape = new b2PolygonShape();
-    shape.Set(polygon, polygon.length);
-
-    // Set UserData to ground
-    const groundUserData: UserData = {
-      objectType: ObjectType.GROUND,
-      displayObject,
-    };
-
-    // Create ground fixture
-    const groundFixtureDef = new b2FixtureDef();
-    groundFixtureDef.shape = shape;
-    groundFixtureDef.userData = groundUserData;
-    ground.CreateFixture(groundFixtureDef, 0);
-  }
-
-  /**
-   * Destroy the ground object by deleting the polygon and removing sprites
-   * @param fixture Ground fixture
-   */
-  DestroyGroundPoly(fixture: b2Fixture): void {
-    const userData: UserData = fixture.GetUserData();
-
-    // Ensure that object is ground
-    if (userData.objectType !== ObjectType.GROUND) {
-      return;
+    // Generate other random players
+    for (let i = 1; i < 5; i++) {
+      const randPlayerGenPos = map.playerPositions[i];
+      const randPlayerPosX = (randPlayerGenPos.x / this.mapSizeMultiplier) - ((this.mapWidthPx / 2) / this.mapSizeMultiplier);
+      const randPlayerPosY = (randPlayerGenPos.y / -this.mapSizeMultiplier) - ((this.mapHeightPx / 2) / -this.mapSizeMultiplier);
+      const randPlayerPosition = new b2Vec2(randPlayerPosX, randPlayerPosY);
+      const randPlayer = new Player(this.world, randPlayerPosition);
+      this.gameObjects.push(randPlayer);
     }
 
-    // Remove physics object
-    this.world.DestroyBody(fixture.GetBody());
+    // Create contact listener for the world
+    this.CreateContactListener();
 
-    // Remove Pixi sprite from stage
-    if (userData.displayObject) {
-      RemovePolygon(userData.displayObject);
-    }
+    // Set eventhandlers for map
+    this.addMapEventHandlers();
+
+    // Set eventhandlers for player
+    this.addPlayerEventHandlers();
   }
 
   /**
@@ -241,158 +144,53 @@ export class Map extends MapBase {
     super.Step(settings, input);
   }
 
-  projectileExplode(gameObject: GameObject): void {
+  private projectileExplode(gameObject: GameObject): void {
+    const gameObjectPos = gameObject.getPosition();
 
-    const x = gameObject.getPosition().x;
-    const y = gameObject.getPosition().y;
+    const x = gameObjectPos.x;
+    const y = gameObjectPos.y;
 
-    // Testing: Destroy 2x2 block of ground on mouse press
+    const explosionSize = 3;
+
+    // Create square AABB to select all potentially affected ground objects
     const aabb: b2AABB = new b2AABB();
-    aabb.lowerBound.Copy(new b2Vec2(x - 1, y - 1));
-    aabb.upperBound.Copy(new b2Vec2(x + 1, y + 1));
+    aabb.lowerBound.Copy(new b2Vec2(x - explosionSize, y - explosionSize));
+    aabb.upperBound.Copy(new b2Vec2(x + explosionSize, y + explosionSize));
 
-    const poly1: any[] = [{ x: x - 1, y: y - 1 }, { x: x - 1, y: y + 1 }, { x: x + 1, y: y + 1 }, { x: x + 1, y: y - 1 }];
+    // Create polygon
+    const numSides = 15;
+    const polygon = generateCircularPolygon(numSides, explosionSize, x, y);
 
-    const res: DestroyedGroundResult = DestroyGround(aabb, poly1, this.world);
+    // Get destroyed result from polygon
+    const res: DestroyedGroundResult = DestroyGround(aabb, polygon, this.world);
 
     // Create the new ground
-    res.polygonsToAdd.forEach((poly: b2Vec2[]) => this.CreateGroundPoly(poly));
+    res.polygonsToAdd.forEach((poly: b2Vec2[]) => CreateGroundPoly(poly, this.world));
 
     // Destroy the old ground
-    res.fixturesToDelete.forEach((fixture: b2Fixture) => this.DestroyGroundPoly(fixture));
+    res.fixturesToDelete.forEach((fixture: b2Fixture) => DestroyGroundPoly(fixture, this.world));
   }
 
-  public MouseDown(p: b2Vec2): boolean {
-    // Pick up Dynamic bodies
-    const hitFixture = super.MouseDown(p);
+  /**
+   * Creates ground polygons that are sized based on map size multiplier
+   * @param polygon Ground polygon to create
+   */
+  private CreateMapPoly(polygon: b2Vec2[]): void {
+    const vertices: b2Vec2[] = polygon.map(v => {
+      // Center the polygons on the map
+      const x = (v.x / this.mapSizeMultiplier) - ((this.mapWidthPx / 2) / this.mapSizeMultiplier);
+      const y = (v.y / -this.mapSizeMultiplier) - ((this.mapHeightPx / 2) / -this.mapSizeMultiplier);
 
-    // If we didn't hit a body, destroy ground
-    if (!hitFixture) {
+      return new b2Vec2(x, y);
+    });
 
-      // Testing: Destroy 2x2 block of ground on mouse press
-      const aabb: b2AABB = new b2AABB();
-      aabb.lowerBound.Copy(new b2Vec2(p.x - 1, p.y - 1));
-      aabb.upperBound.Copy(new b2Vec2(p.x + 1, p.y + 1));
-
-      const poly1: any[] = [{ x: p.x - 1, y: p.y - 1 }, { x: p.x - 1, y: p.y + 1 }, { x: p.x + 1, y: p.y + 1 }, { x: p.x + 1, y: p.y - 1 }];
-
-      const res: DestroyedGroundResult = DestroyGround(aabb, poly1, this.world);
-
-      // Create the new ground
-      res.polygonsToAdd.forEach((poly: b2Vec2[]) => this.CreateGroundPoly(poly));
-
-      // Destroy the old ground
-      res.fixturesToDelete.forEach((fixture: b2Fixture) => this.DestroyGroundPoly(fixture));
-    }
-
-    return hitFixture;
-  }
-
-  public CreateCircles(numCircles: number): void {
-    // Create circles
-    for (let i = 0; i < numCircles; i++) {
-      const bd = new b2BodyDef();
-      bd.type = b2BodyType.b2_dynamicBody;
-      const body = this.world.CreateBody(bd);
-      const shape = new b2CircleShape();
-      shape.m_p.Set(0, 10 * (i + 1));
-      shape.m_radius = 4;
-      const f = body.CreateFixture(shape, 0.5);
-    }
-  }
-
-  public CreateRamp(): void {
-    {
-      const bd = new b2BodyDef();
-      const ground = this.world.CreateBody(bd);
-
-      // Right slope
-      {
-        const shape = new b2PolygonShape();
-        const vertices = [
-          new b2Vec2(15, 5),
-          new b2Vec2(10, 10),
-          new b2Vec2(20, 0),
-          new b2Vec2(5, 0),
-        ];
-        shape.Set(vertices, 4);
-        ground.CreateFixture(shape, 0.0);
-      }
-
-      // Left slope
-      {
-        const shape = new b2PolygonShape();
-        const vertices = [
-          new b2Vec2(-15, 5),
-          new b2Vec2(-7, 5),
-          new b2Vec2(-20, 0),
-          new b2Vec2(-2, 0),
-        ];
-        shape.Set(vertices, 4);
-        ground.CreateFixture(shape, 0.0);
-      }
-    }
-  }
-
-  public CreateWalls(): void {
-    // Create the walls of the world.
-    {
-      const bd = new b2BodyDef();
-      const ground = this.world.CreateBody(bd);
-
-      {
-        const shape = new b2PolygonShape();
-        const vertices = [
-          new b2Vec2(-40, -10),
-          new b2Vec2(40, -10),
-          new b2Vec2(40, 0),
-          new b2Vec2(-40, 0),
-        ];
-        shape.Set(vertices, 4);
-        ground.CreateFixture(shape, 0.0);
-      }
-
-      {
-        const shape = new b2PolygonShape();
-        const vertices = [
-          new b2Vec2(-40, 40),
-          new b2Vec2(40, 40),
-          new b2Vec2(40, 50),
-          new b2Vec2(-40, 50),
-        ];
-        shape.Set(vertices, 4);
-        ground.CreateFixture(shape, 0.0);
-      }
-
-      {
-        const shape = new b2PolygonShape();
-        const vertices = [
-          new b2Vec2(-40, -10),
-          new b2Vec2(-20, -10),
-          new b2Vec2(-20, 50),
-          new b2Vec2(-40, 50),
-        ];
-        shape.Set(vertices, 4);
-        ground.CreateFixture(shape, 0.0);
-      }
-
-      {
-        const shape = new b2PolygonShape();
-        const vertices = [
-          new b2Vec2(20, -10),
-          new b2Vec2(40, -10),
-          new b2Vec2(40, 50),
-          new b2Vec2(20, 50),
-        ];
-        shape.Set(vertices, 4);
-        ground.CreateFixture(shape, 0.0);
-      }
-    }
+    // Create the ground
+    CreateGroundPoly(vertices, this.world);
   }
 
   // --------- Collision -------------
 
-  public CreateContactListener(): void {
+  private CreateContactListener(): void {
     const listener = new b2ContactListener();
     listener.BeginContact = (contact: b2Contact) => {
       const fixtureA: b2Fixture = contact.GetFixtureA();
@@ -433,7 +231,7 @@ export class Map extends MapBase {
     // listener.PostSolve = function(contact, impulse) {
     // }
 
-    listener.PreSolve = (contact: b2Contact, oldManifold) => {
+    listener.PreSolve = (contact: b2Contact) => {
       const fixtureA: b2Fixture = contact.GetFixtureA();
       const fixtureB: b2Fixture = contact.GetFixtureB();
 
@@ -444,5 +242,115 @@ export class Map extends MapBase {
     };
 
     this.world.SetContactListener(listener);
+  }
+
+  // ----- Event Handlers -----
+
+  screenToWorldPos(event): b2Vec2 {
+    const x = event.data.getLocalPosition(gfx.stage).x / gfx.metersToPixel;
+    const y = event.data.getLocalPosition(gfx.stage).y / gfx.metersToPixel;
+
+    return new b2Vec2(x, -y);
+  }
+
+  // Player event handlers
+
+  addPlayerEventHandlers() {
+    // Set eventhandlers for player
+    this.player.getSprite()
+      // events for drag start
+      .on('mousedown', (event) => this.onPlayerDragStart(event))
+      .on('touchstart', (event) => this.onPlayerDragStart(event))
+      // events for drag end
+      .on('mouseup', (event) => this.onPlayerDragEnd(event))
+      .on('mouseupoutside', (event) => this.onPlayerDragEnd(event))
+      .on('touchend', (event) => this.onPlayerDragEnd(event))
+      .on('touchendoutside', (event) => this.onPlayerDragEnd(event))
+      // events for drag move
+      .on('mousemove', (event) => this.onPlayerDragMove(event))
+      .on('touchmove', (event) => this.onPlayerDragMove(event));
+  }
+
+  onPlayerDragStart(event: PIXI.interaction.InteractionEvent): void {
+    event.stopPropagation();
+    this.player.getSprite().alpha = 0.5;
+    this.MouseDown(this.screenToWorldPos(event));
+    this.draggingMap = false;
+  }
+
+  onPlayerDragEnd(event: PIXI.interaction.InteractionEvent): void {
+    event.stopPropagation();
+    this.player.getSprite().alpha = 1;
+    this.MouseUp(this.screenToWorldPos(event));
+  }
+
+  onPlayerDragMove(event: PIXI.interaction.InteractionEvent): void {
+    event.stopPropagation();
+    this.MouseMove(this.screenToWorldPos(event));
+  }
+
+  // Map event handlers
+
+  // Add mouse and touch handlers for map
+  addMapEventHandlers(): void {
+    gfx.renderer.plugins.interaction.on('pointerdown', (e) => this.onMapMouseDown(e));
+    gfx.renderer.plugins.interaction.on('mouseup', (e) => this.onMapMouseUp(e));
+    gfx.renderer.plugins.interaction.on('mousemove', (e) => this.onMapDragMove(e));
+    gfx.renderer.plugins.interaction.on('touchmove', (e) => this.onMapDragMove(e));
+  }
+
+  // Touch map
+
+  onMapMouseDown(event: PIXI.interaction.InteractionEvent): void {
+    const hit = this.MouseDown(this.screenToWorldPos(event));
+    if (!hit) {
+      this.onMapDragStart(event);
+    }
+  }
+
+  onMapMouseUp(event: PIXI.interaction.InteractionEvent): void {
+    if (this.draggingMap) {
+      this.onMapDragEnd();
+    }
+  }
+
+  // Drag map to move
+
+  onMapDragStart(event: PIXI.interaction.InteractionEvent): void {
+    event.data.global.copyTo(this.mouseDragPos);
+    this.draggingMap = true;
+  }
+
+  onMapDragEnd(): void {
+    this.draggingMap = false;
+  }
+
+  onMapDragMove(event: PIXI.interaction.InteractionEvent): void {
+    event.stopPropagation();
+    if (this.draggingMap) {
+      const nextMouseDragPos = event.data.global.clone();
+      const dragX = this.mouseDragPos.x - nextMouseDragPos.x;
+      const dragY = this.mouseDragPos.y - nextMouseDragPos.y;
+
+      this.mouseDragPos = nextMouseDragPos;
+
+      this.mapPivot.set(this.mapPivot.x + dragX, this.mapPivot.y + dragY);
+
+      gfx.stage.pivot = this.mapPivot;
+    }
+  }
+
+  public MouseDown(p: b2Vec2): boolean {
+    // Pick up Dynamic bodies
+    const hitFixture = super.MouseDown(p);
+
+    // If we didn't hit a body, destroy ground
+    if (!hitFixture) {
+      // Put click test here
+    }
+
+    console.log("clicky");
+
+    return hitFixture;
   }
 }
