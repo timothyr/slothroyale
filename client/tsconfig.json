@@ -2,6 +2,7 @@
   "compileOnSave": false,
   "include": [
     "../common/**/*.ts",
+    "../mapgeneration/**/*.ts",
     "src/**/*.ts"
   ], 
   "exclude": [

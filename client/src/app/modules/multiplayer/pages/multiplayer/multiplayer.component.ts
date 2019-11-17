@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import * as Colyseus from 'colyseus.js';
-import { GenerateMap } from 'gamecommon/game/map/map-generation/MapGenerator';
+import { GenerateMap } from 'mapgeneration/MapGenerator';
 
 @Component({
   selector: 'app-multiplayer',

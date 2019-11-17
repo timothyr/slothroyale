@@ -1,5 +1,6 @@
 import { Room, Client } from "colyseus";
 import { Schema, type, MapSchema } from "@colyseus/schema";
+import { Main } from 'gamecommon/game/core/Main';
 
 export class GameObject extends Schema {
   @type("uint8")
@@ -48,6 +49,10 @@ export class MyRoom extends Room {
     // options.map.playerPositions.forEach((polygon: any) => {
     //   console.log(polygon);
     // });
+
+    let game: Main;
+    game = new Main(0);
+    game.LoadLevel(options.map);
   }
 
   onJoin (client: Client, options: any) {

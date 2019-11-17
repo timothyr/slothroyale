@@ -1,6 +1,6 @@
 import { b2AABB, b2Vec2, b2Fixture, b2World } from '@flyover/box2d';
-import * as hxGeom from './map-generation//hxGeomAlgo/hxGeomAlgo.js';
-import * as clipperLib from './map-generation//js-angusj-clipper'; // es6 / typescript
+import * as hxGeom from './hxGeomAlgo/hxGeomAlgo.js';
+import * as clipperLib from './js-angusj-clipper'; // es6 / typescript
 import { UserData, ObjectType } from '../object/UserData';
 
 let mapClipper;

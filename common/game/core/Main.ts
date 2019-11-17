@@ -1,5 +1,5 @@
 import { MapBase, Settings } from './MapBase';
-import { Map } from '../map/Map';
+import { Map, MapOptions } from '../map/Map';
 import { Fps } from './Fps';
 import { Input, MoveX, MoveY } from './InputTypes';
 import { Controls } from './Controls';
@@ -20,13 +20,11 @@ export class Main {
 
     document.body.style.backgroundColor = 'black';
 
-    this.LoadLevel();
-
     this.timeLast = time;
   }
 
-  public LoadLevel(): void {
-    this.map = Map.Create();
+  public LoadLevel(mapOptions?: MapOptions): void {
+    this.map = Map.Create(mapOptions);
   }
 
   // --------- Simulation Loop ---------

@@ -3,9 +3,8 @@ import { PositionGenerator } from './TerrainVer/PositionGenerator.js';
 import * as hxGeom from './hxGeomAlgo/hxGeomAlgo.js';
 import * as marchingsquares from './MarchingSquaresJS/MarchingSquares.js';
 import { b2Vec2 } from '@flyover/box2d';
-import { MapOptions } from '../Map';
 
-export async function GenerateMap(): Promise<MapOptions> {
+export async function GenerateMap(): Promise<any> {
     // Width & Height need to match image dimensions
     const width = 1024; // Make sure width is even
     const height = 612; // Make sure height is even

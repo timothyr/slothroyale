@@ -1,7 +1,6 @@
 import { b2Fixture, b2Vec2, b2AABB, b2Contact, b2Sin, b2Cos, b2DegToRad, b2ContactListener} from '@flyover/box2d';
 import { MapBase, Settings } from '../core/MapBase';
 import { Input } from '../core/InputTypes';
-import { GenerateMap } from './map-generation/MapGenerator';
 import { generateCircularPolygon, CreateGroundPoly, DestroyGroundPoly } from './PolygonBuilder';
 import { DestroyGround, DestroyedGroundResult } from './DestroyGround';
 import { UserData } from '../object/UserData';
@@ -25,15 +24,7 @@ export class Map extends MapBase {
   constructor(mapOptions?: MapOptions) {
     super();
 
-    // If map is supplied, use it
-    if (mapOptions) {
-      this.initMap(mapOptions);
-    } else {
-      // If no map is supplied, generate the map
-      GenerateMap().then((map) => {
-        this.initMap(map);
-      });
-    }
+    this.initMap(mapOptions);
   }
 
   mapSizeMultiplier = 8;
@@ -48,8 +39,8 @@ export class Map extends MapBase {
   gameObjects: GameObject[] = [];
   gameObjectsToDestroy: GameObject[] = [];
 
-  public static Create(): MapBase {
-    return new Map();
+  public static Create(mapOptions?: MapOptions): MapBase {
+    return new Map(mapOptions);
   }
 
   private initMap(map: MapOptions): void {
