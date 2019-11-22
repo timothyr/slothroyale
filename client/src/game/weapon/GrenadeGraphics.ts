@@ -19,7 +19,7 @@ export class GrenadeGraphics extends Grenade implements GameObjectGraphics {
 
     graphics.lineStyle(0);
     graphics.beginFill(0xF500FA, 1);
-    graphics.drawCircle(0, 0, this.size * metersToPixel);
+    graphics.drawCircle(0, 0, 0.5 * metersToPixel);
     graphics.endFill();
 
     return graphics;

@@ -7,7 +7,7 @@ import { Player } from '../player/Player';
 export abstract class GameObjectFactory {
   public abstract createGround(world: b2World, position: b2Vec2, bodyParams: any): Ground;
   public abstract createPlayer(world: b2World, position: b2Vec2): Player;
-  public abstract createGrenade(world: b2World, position: b2Vec2, aimAngle: number, direction: number): GameObject;
+  public abstract createGrenade(world: b2World, position: b2Vec2, aimAngle: number, direction: number): Grenade;
 }
 
 export class GameObjectFactoryServer extends GameObjectFactory {
