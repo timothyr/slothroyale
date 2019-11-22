@@ -1,8 +1,7 @@
 import { Input, MoveX, MoveY } from '../core/InputTypes';
-import * as PIXI from 'pixi.js';
 import {
-  b2Vec2, b2Body, b2World, b2Sin, b2Cos, b2DegToRad, b2Max, b2Min, b2Fixture,
-  b2BodyType, b2BodyDef, b2PolygonShape, b2CircleShape, b2FixtureDef
+  b2Vec2, b2Body, b2World, b2DegToRad, b2Fixture,
+  b2BodyType, b2BodyDef, b2PolygonShape, b2CircleShape, b2FixtureDef, b2Min, b2Max
 } from '@flyover/box2d';
 import { UserData, ObjectType } from '../object/UserData';
 import { GameObject } from '../object/GameObject';
@@ -33,10 +32,10 @@ export class Player extends GameObject {
   playerMovement: PlayerMovement;
   jumpTimer: number;
   stopped = true;
-  sprite: PIXI.Sprite;
-  aimArrow: PIXI.DisplayObject;
-  aimAngle = 90;
+
   direction = PlayerDirection.RIGHT;
+
+  aimAngle = 90;
 
   createBody(world: b2World): b2Body {
     const bd = new b2BodyDef();
@@ -54,13 +53,13 @@ export class Player extends GameObject {
 
     this.playerMovement = {
       objectType: ObjectType.PLAYER,
-      displayObject: this.displayObject,
       minAngle: b2DegToRad(PLAYER_MIN_ANGLE),
       maxAngle: b2DegToRad(PLAYER_MAX_ANGLE),
       velocity: 0,
       moveX: MoveX.NONE,
       direction: PlayerDirection.RIGHT,
       numFootContacts: 0,
+      localUUID: this.getLocalUUID()
     };
 
     this.jumpTimer = 0;
@@ -75,19 +74,6 @@ export class Player extends GameObject {
     body.SetSleepingAllowed(true); // set only on players turn?
 
     return body;
-  }
-
-  createSprite(): PIXI.Sprite {
-    // test player sprite
-    const sprite = PIXI.Sprite.from('assets/bunny.png');
-    sprite.anchor.set(0.5, 0.3);
-    sprite.interactive = true;
-    sprite.buttonMode = true;
-    this.sprite = sprite;
-
-    this.DrawAimArrow();
-
-    return sprite;
   }
 
   handleInput(input: Input) {
@@ -118,6 +104,8 @@ export class Player extends GameObject {
       let velocity = 0;
       let direction: PlayerDirection;
 
+      // Handle X
+
       switch (input.moveX) {
         case MoveX.LEFT:
           this.direction = direction = PlayerDirection.LEFT;
@@ -137,6 +125,17 @@ export class Player extends GameObject {
       });
     }
 
+    // Handle Y
+
+    switch (input.moveY) {
+      case MoveY.UP:
+        this.increaseAimAngle();
+        break;
+      case MoveY.DOWN:
+        this.decreaseAimAngle();
+        break;
+    }
+
     if (input.jump && this.jumpTimer === 0 && this.canJump()) {
       const dir: number = this.sensorFixture.GetUserData().direction;
       this.body.ApplyLinearImpulse(new b2Vec2(this.body.GetMass() * 2 * dir, this.body.GetMass() * 5), this.body.GetWorldCenter());
@@ -149,21 +148,16 @@ export class Player extends GameObject {
     }
 
     this.jumpTimerTick();
+  }
 
-    // Update Aim arrow
+  increaseAimAngle(): void {
+    this.aimAngle += 2;
+    this.aimAngle = b2Min(this.aimAngle, AIM_MAX_ANGLE);
+  }
 
-    switch (input.moveY) {
-      case MoveY.UP:
-        this.aimAngle += 2;
-        this.aimAngle = b2Min(this.aimAngle, AIM_MAX_ANGLE);
-        break;
-      case MoveY.DOWN:
-        this.aimAngle -= 2;
-        this.aimAngle = b2Max(this.aimAngle, AIM_MIN_ANGLE);
-        break;
-    }
-
-    this.aimArrow.setTransform(undefined, undefined, undefined, undefined, b2DegToRad(this.aimAngle * this.direction * -1));
+  decreaseAimAngle(): void {
+    this.aimAngle -= 2;
+    this.aimAngle = b2Max(this.aimAngle, AIM_MIN_ANGLE);
   }
 
   addNumFootContacts(num: number) {
@@ -183,36 +177,5 @@ export class Player extends GameObject {
     if (this.jumpTimer > 0) {
       this.jumpTimer--;
     }
-  }
-
-  // Aiming arrow
-
-  DrawAimArrow() {
-    const graphics = new PIXI.Graphics();
-
-    const angle = 0;
-    const radius = 30;
-
-    const s = radius * b2Sin(b2DegToRad(angle + 10));
-    const c = radius * b2Cos(b2DegToRad(angle + 10));
-    const s1 = radius * b2Sin(b2DegToRad(angle - 10));
-    const c1 = radius * b2Cos(b2DegToRad(angle - 10));
-    const s2 = radius * b2Sin(b2DegToRad(angle)) * 2;
-    const c2 = radius * b2Cos(b2DegToRad(angle)) * 2;
-
-    const vertices: number[] = [s, c, s1, c1, s2, c2];
-
-    graphics.lineStyle(0);
-    graphics.beginFill(0xFAFAFA, 1);
-    graphics.drawPolygon(vertices);
-    graphics.endFill();
-
-    this.aimArrow = this.sprite.addChild(graphics);
-
-    this.aimArrow.setTransform(undefined, undefined, undefined, undefined, b2DegToRad(270));
-  }
-
-  RemoveAimArrow(): void {
-    this.sprite.removeChild(this.aimArrow);
   }
 }

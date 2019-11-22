@@ -10,7 +10,6 @@
   "license": "ISC",
   "dependencies": {
     "@flyover/box2d": "github:timothyr/box2d.ts#master",
-    "pixi.js": "^5.2.0",
     "tslib": "^1.10.0"
   }
 }

@@ -1,8 +1,7 @@
 import { MapBase, Settings } from './MapBase';
-import { Map, MapOptions } from '../map/Map';
+import { Map } from '../map/Map';
 import { Fps } from './Fps';
-import { Input, MoveX, MoveY } from './InputTypes';
-import { Controls } from './Controls';
+import { Input } from './InputTypes';
 
 export class Main {
   public timeLast = 0;
@@ -12,19 +11,20 @@ export class Main {
   public map?: MapBase;
   public readonly physicsSettings: Settings = new Settings();
 
-  public input: Input = new Input();
-  public controls: Controls = new Controls(this.input);
+  public input: Input;
 
-  constructor(time: number) {
-    this.fps = new Fps();
+  constructor(time: number, input: Input) {
+    this.input = input;
 
-    document.body.style.backgroundColor = 'black';
+    // this.fps = new Fps();
+
+    // document.body.style.backgroundColor = 'black';
 
     this.timeLast = time;
   }
 
-  public LoadLevel(mapOptions?: MapOptions): void {
-    this.map = Map.Create(mapOptions);
+  public LoadMap(map: Map): void {
+    this.map = map;
   }
 
   // --------- Simulation Loop ---------
@@ -37,7 +37,7 @@ export class Main {
 
     if (timeElapsed > 1000) { timeElapsed = 1000; } // clamp
 
-    this.fps.Update(timeElapsed);
+    // this.fps.Update(timeElapsed);
 
     // Main update function
     if (timeElapsed > 0) {

@@ -1,6 +1,10 @@
 import { Component, AfterViewInit } from '@angular/core';
 import { Main } from 'gamecommon/game/core/Main';
 import { GenerateMap } from 'mapgeneration/MapGenerator';
+import { MapGraphics } from '@game/map/MapGraphics';
+import { GameObjectFactoryClient } from '@game/object/GameObjectFactoryClient';
+import { Controls } from '@game/core/Controls';
+import { Input } from 'gamecommon/game/core/InputTypes';
 
 @Component({
   selector: 'app-singleplayer',
@@ -9,6 +13,9 @@ import { GenerateMap } from 'mapgeneration/MapGenerator';
 })
 export class SingleplayerComponent implements AfterViewInit {
 
+  public controls: Controls;
+  public input: Input;
+
   public ngAfterViewInit(): void {
     this.startGameLoop();
   }
@@ -16,7 +23,12 @@ export class SingleplayerComponent implements AfterViewInit {
   public startGameLoop(): void {
     let game: Main;
 
-    GenerateMap().then((map) => {
+    GenerateMap().then((mapOptions) => {
+
+      this.input = new Input();
+      this.controls = new Controls(this.input);
+      const gameObjectFactory = new GameObjectFactoryClient();
+      const map = MapGraphics.Create(mapOptions, gameObjectFactory);
 
       const loop = (time: number) => {
         window.requestAnimationFrame(loop);
@@ -24,8 +36,8 @@ export class SingleplayerComponent implements AfterViewInit {
       };
 
       const init = (time: number) => {
-        game = new Main(time);
-        game.LoadLevel(map);
+        game = new Main(time, this.input);
+        game.LoadMap(map);
         window.requestAnimationFrame(loop);
       };
 

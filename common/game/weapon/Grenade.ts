@@ -1,12 +1,9 @@
 import { GameObject } from '../object/GameObject';
 import { b2World, b2Body, b2BodyDef, b2BodyType, b2CircleShape, b2Vec2, b2Cos, b2DegToRad, b2Sin, b2FixtureDef } from '@flyover/box2d';
-import * as PIXI from 'pixi.js';
-import { metersToPixel } from '../graphics/Pixi';
 import { ObjectType, UserData } from '../object/UserData';
 
-const size = 0.5;
-
 export class Grenade extends GameObject {
+  size = 0.5;
 
   constructor(world: b2World, position: b2Vec2, aimAngle: number, direction: number) {
     super(world, position);
@@ -25,11 +22,11 @@ export class Grenade extends GameObject {
 
     const projectileUserData: UserData = {
       objectType: ObjectType.PROJECTILE,
-      displayObject: this.displayObject
+      localUUID: this.getLocalUUID()
     };
 
     const shape = new b2CircleShape();
-    shape.m_radius = size;
+    shape.m_radius = this.size;
 
     const projectileFixtureDef = new b2FixtureDef();
     projectileFixtureDef.shape = shape;
@@ -38,16 +35,5 @@ export class Grenade extends GameObject {
     this.sensorFixture = body.CreateFixture(projectileFixtureDef, 0);
 
     return body;
-  }
-
-  createSprite(): PIXI.Sprite | PIXI.Graphics {
-    const graphics = new PIXI.Graphics();
-
-    graphics.lineStyle(0);
-    graphics.beginFill(0xF500FA, 1);
-    graphics.drawCircle(0, 0, size * metersToPixel);
-    graphics.endFill();
-
-    return graphics;
   }
 }

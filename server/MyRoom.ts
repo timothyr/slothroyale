@@ -1,6 +1,9 @@
 import { Room, Client } from "colyseus";
 import { Schema, type, MapSchema } from "@colyseus/schema";
 import { Main } from 'gamecommon/game/core/Main';
+import { Map } from "gamecommon/game/map/Map";
+import { GameObjectFactoryServer } from "gamecommon/game/object/GameObjectFactory";
+import { Input } from "gamecommon/game/core/InputTypes";
 
 export class GameObject extends Schema {
   @type("uint8")
@@ -41,18 +44,14 @@ export class World extends Schema {
 export class MyRoom extends Room {
 
   onCreate (options: any) {
-    console.log("options", options);
-    // console.log("polygons")
-    // options.map.polygons.forEach((polygon: any) => {
-    //   console.log(polygon);
-    // });
-    // options.map.playerPositions.forEach((polygon: any) => {
-    //   console.log(polygon);
-    // });
-
+    // console.log("options", options);
+    
     let game: Main;
-    game = new Main(0);
-    game.LoadLevel(options.map);
+    game = new Main(0, new Input());
+    const gameObjectFactory = new GameObjectFactoryServer();
+    const map = Map.Create(options.map, gameObjectFactory);
+
+    game.LoadMap(map);
   }
 
   onJoin (client: Client, options: any) {

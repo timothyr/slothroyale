@@ -1,7 +1,4 @@
 import { b2Vec2, b2Sin, b2_pi, b2Cos, b2BodyDef, b2PolygonShape, b2FixtureDef, b2Fixture, b2World } from '@flyover/box2d';
-import { metersToPixel } from '../graphics/Pixi';
-import { DrawPolygon, RemovePolygon } from '../graphics/Draw';
-import { UserData, ObjectType } from '../object/UserData';
 
 /**
  * Generate n-gon polygon with numSides as n
@@ -24,64 +21,7 @@ export function generateCircularPolygon(numSides, size, centerX, centerY): b2Vec
   return polygon;
 }
 
-/**
- * Creates ground polygons for the map
- * @param polygon Ground polygon to create
- */
-export function CreateGroundPoly(polygon: b2Vec2[], world: b2World): void {
-  // Pixi Graphics
 
-  const pixiVertices: number[] = [];
-
-  polygon.forEach((v: b2Vec2) => {
-    pixiVertices.push(v.x * metersToPixel);
-    pixiVertices.push(-v.y * metersToPixel);
-  });
-
-  const displayObject = DrawPolygon(pixiVertices);
-
-  // Box2D Physics
-
-  const bd = new b2BodyDef();
-  const ground = world.CreateBody(bd);
-
-  // Set shape
-  const shape = new b2PolygonShape();
-  shape.Set(polygon, polygon.length);
-
-  // Set UserData to ground
-  const groundUserData: UserData = {
-    objectType: ObjectType.GROUND,
-    displayObject,
-  };
-
-  // Create ground fixture
-  const groundFixtureDef = new b2FixtureDef();
-  groundFixtureDef.shape = shape;
-  groundFixtureDef.userData = groundUserData;
-  ground.CreateFixture(groundFixtureDef, 0);
-}
-
-/**
- * Destroy the ground object by deleting the polygon and removing sprites
- * @param fixture Ground fixture
- */
-export function DestroyGroundPoly(fixture: b2Fixture, world: b2World): void {
-  const userData: UserData = fixture.GetUserData();
-
-  // Ensure that object is ground
-  if (userData.objectType !== ObjectType.GROUND) {
-    return;
-  }
-
-  // Remove physics object
-  world.DestroyBody(fixture.GetBody());
-
-  // Remove Pixi sprite from stage
-  if (userData.displayObject) {
-    RemovePolygon(userData.displayObject);
-  }
-}
 
 export function CreateWalls(world: b2World): void {
   // Create the walls of the world.

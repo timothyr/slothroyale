@@ -7,6 +7,8 @@
   ], 
   "exclude": [
     "node_modules",
+    "../common/node_modules",
+    "../mapgeneration/node_modules",
     "**/*.spec.ts"
   ],
   "compilerOptions": {
@@ -29,8 +31,11 @@
     ],
     "paths" : {
       "@app/*" : [
-          "src/app/*"
-      ]
+        "src/app/*"
+      ],
+      "@game/*" : [
+        "src/game/*"
+    ]
     },
   }
 }

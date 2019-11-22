@@ -1,4 +1,4 @@
-import { Input, MoveX, MoveY } from './InputTypes';
+import { Input, MoveX, MoveY } from 'gamecommon/game/core/InputTypes';
 
 export class Controls {
 

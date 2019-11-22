@@ -1,8 +1,8 @@
-import * as PIXI from 'pixi.js';
+import { Application } from 'pixi.js';
 
 export const metersToPixel = 20;
 
-export class PixiGraphics extends PIXI.Application {
+export class PixiGraphics extends Application {
     public metersToPixel = 20;
 }
 
