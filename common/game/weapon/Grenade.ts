@@ -4,6 +4,8 @@ import { ObjectType, UserData } from '../object/UserData';
 
 export class Grenade extends GameObject {
 
+  public static readonly grenadeSize: number = 0.5;
+
   constructor(world: b2World, position: b2Vec2, aimAngle: number, direction: number) {
     super(world, position);
 
@@ -25,7 +27,7 @@ export class Grenade extends GameObject {
     };
 
     const shape = new b2CircleShape();
-    shape.m_radius = 0.5;
+    shape.m_radius = Grenade.grenadeSize;
 
     const projectileFixtureDef = new b2FixtureDef();
     projectileFixtureDef.shape = shape;
