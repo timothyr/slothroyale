@@ -1,11 +1,13 @@
 import { Room, Client, serialize, SchemaSerializer } from "colyseus";
-import { Schema, type, MapSchema } from "@colyseus/schema";
 import { Main } from 'gamecommon/game/core/Main';
 import { Map } from "gamecommon/game/map/Map";
 import { GameObjectFactoryServer } from "gamecommon/game/object/GameObjectFactory";
 import { Input } from "gamecommon/game/core/InputTypes";
 import * as clipperLib from "js-angusj-clipper"; // es6 / typescript
-import { World } from "./schema/World";
+import { World } from "gamecommon/game/schema/World";
+import { Schema } from "@colyseus/schema";
+
+export class UselessSchema extends Schema {}
 
 @serialize(SchemaSerializer)
 export class GameRoom extends Room<World> {
@@ -29,9 +31,17 @@ export class GameRoom extends Room<World> {
     let game: Main;
     game = new Main(0, new Input());
     const gameObjectFactory = new GameObjectFactoryServer();
-    const map = Map.Create(options.map, gameObjectFactory);
+    const map: any = Map.Create(options.map, gameObjectFactory);
 
-    this.setState(new World());
+    // <hack> to get around SchemaSerializer:12 in setState()
+    const mapProto = map.__proto__;
+    const newWorld: any = new UselessSchema();
+    map.__proto__ = newWorld.__proto__
+
+    this.setState(map);
+
+    map.__proto__ = mapProto;
+    // </hack>
 
     map.setMapClipper(this.mapClipper);
 
