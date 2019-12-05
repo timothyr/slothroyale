@@ -6,15 +6,14 @@
 // 
 
 import { Schema, type, ArraySchema, MapSchema, DataChange } from "@colyseus/schema";
-import { PlayerSchema } from "./Player"
 import { GameObjectSchema } from "./GameObject"
+import { ObjectType } from '../object/UserData';
 
-export class World extends Schema {
-    // @type({ map: PlayerSchema }) public players: MapSchema<PlayerSchema> = new MapSchema<PlayerSchema>();
-    @type({ map: GameObjectSchema }) public gameObjects: MapSchema<GameObjectSchema> = new MapSchema<GameObjectSchema>();
+export class PlayerSchema extends GameObjectSchema {
+    @type("string") public name: string;
 
     constructor () {
-        super();
+        super(ObjectType.PLAYER);
 
         // initialization logic here.
     }

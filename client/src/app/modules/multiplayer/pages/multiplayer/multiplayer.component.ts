@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import * as Colyseus from 'colyseus.js';
 import { GenerateMap } from 'mapgeneration/MapGenerator';
+import { World } from 'gamecommon/game/schema/World';
 
 @Component({
   selector: 'app-multiplayer',
@@ -21,8 +22,13 @@ export class MultiplayerComponent implements OnInit {
       console.log('Generated map. Creating room ...');
 
       // Make a room with map
-      client.create('battle', { map }).then(room => {
+      client.create<World>('battle', { map }).then(room => {
         console.log('Created room successfully', room);
+
+        room.state.gameObjects.onAdd = (gameObjectSchema, sessionId: string) => {
+          console.log("Creating gameobject", gameObjectSchema.objectType, gameObjectSchema);
+        };
+
       }).catch(e => {
         console.error('Create room error', e);
       });

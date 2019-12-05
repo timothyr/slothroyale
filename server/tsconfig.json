@@ -10,7 +10,8 @@
     "outDir": "lib",
     "experimentalDecorators": true,
     "esModuleInterop": true,
-    "target": "esnext",
-    "module": "commonjs"
+    "target": "es2015",
+    "module": "commonjs",
+    "lib": ["es5"]
   }
 }
