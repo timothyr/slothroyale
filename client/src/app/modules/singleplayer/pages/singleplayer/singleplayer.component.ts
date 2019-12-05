@@ -33,9 +33,9 @@ export class SingleplayerComponent implements AfterViewInit {
       // let it autodetect which one to use, but also available WasmOnly and AsmJsOnly
       clipperLib.NativeClipperLibRequestedFormat.WasmWithAsmJsFallback
     ).then((clipper) => {
+      this.mapClipper = clipper;
       if (this.map) {
         this.map.setMapClipper(clipper);
-        this.mapClipper = clipper;
       }
     });
 

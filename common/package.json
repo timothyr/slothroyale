@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "colyseus.js": "^0.11.5",
     "@flyover/box2d": "github:timothyr/box2d.ts#master",
     "tslib": "^1.10.0"
   }

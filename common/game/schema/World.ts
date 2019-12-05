@@ -6,12 +6,14 @@
 // 
 
 import { Schema, type, ArraySchema, MapSchema, DataChange } from "@colyseus/schema";
+import { PlayerSchema } from "./Player"
+import { GameObjectSchema } from "./GameObject"
 
-
-export class GameObject extends Schema {
-    @type("uint8") public objectType: number;
-    @type("int32") public x: number;
-    @type("int32") public y: number;
+export class World extends Schema {
+    @type("uint32") public width: number;
+    @type("uint32") public height: number;
+    @type({ map: PlayerSchema }) public players: MapSchema<PlayerSchema> = new MapSchema<PlayerSchema>();
+    @type({ map: GameObjectSchema }) public gameObjects: MapSchema<GameObjectSchema> = new MapSchema<GameObjectSchema>();
 
     constructor () {
         super();

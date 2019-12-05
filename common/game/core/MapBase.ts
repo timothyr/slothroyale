@@ -3,6 +3,7 @@ import {
   b2DestructionListener, b2Joint, b2Fixture, b2Vec2, b2PointState, b2ContactListener, b2World,
   b2BodyDef, b2MouseJoint, b2Body, b2BodyType, b2MouseJointDef
 } from '@flyover/box2d';
+import { World } from '../schema/World';
 
 export class Settings {
   public hz = 60;
@@ -61,7 +62,7 @@ export class ContactPoint {
   public separation = 0;
 }
 
-export class MapBase extends b2ContactListener {
+export class MapBase extends World {
 
   constructor() {
     super();
@@ -73,7 +74,7 @@ export class MapBase extends b2ContactListener {
 
     this.mapDestructionListener = new DestructionListener(this);
     this.world.SetDestructionListener(this.mapDestructionListener);
-    this.world.SetContactListener(this);
+    this.world.SetContactListener(b2ContactListener.b2_defaultListener);
     // this.m_world.SetDebugDraw(g_debugDraw);
 
     const bodyDef: b2BodyDef = new b2BodyDef();

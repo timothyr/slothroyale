@@ -37,6 +37,10 @@ export class Player extends GameObject {
 
   aimAngle = 90;
 
+  constructor(world: b2World, position: b2Vec2) {
+    super(world, ObjectType.PLAYER, position);
+  }
+
   createBody(world: b2World): b2Body {
     const bd = new b2BodyDef();
     bd.type = b2BodyType.b2_dynamicBody;

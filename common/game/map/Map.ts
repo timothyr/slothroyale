@@ -35,7 +35,7 @@ export class Map extends MapBase {
   player: Player = null;
   playerFireCooldown = false;
   gameObjectFactory: GameObjectFactory;
-  gameObjects: GameObject[] = [];
+  // gameObjects: GameObject[] = [];
   gameObjectsToDestroy: GameObject[] = [];
   ground: Ground[] = []
 
@@ -65,7 +65,7 @@ export class Map extends MapBase {
       const randPlayerPosY = (randPlayerGenPos.y / -this.mapSizeMultiplier) - ((this.mapHeightPx / 2) / -this.mapSizeMultiplier);
       const randPlayerPosition = new b2Vec2(randPlayerPosX, randPlayerPosY);
       const randPlayer = this.gameObjectFactory.createPlayer(this.world, randPlayerPosition);
-      this.gameObjects.push(randPlayer);
+      this.gameObjects[randPlayer.getLocalUUID()] = randPlayer;
     }
 
     // Create contact listener for the world
@@ -95,31 +95,43 @@ export class Map extends MapBase {
         const grenadePosition = new b2Vec2(gx, gy);
 
         const grenade = this.gameObjectFactory.createGrenade(this.world, grenadePosition, this.player.aimAngle, this.player.direction);
-        this.gameObjects.push(grenade);
+        this.gameObjects[grenade.getLocalUUID()] = grenade;
 
         this.playerFireCooldown = true;
       }
     }
+    
 
-    this.gameObjects.forEach(gameObject => gameObject.update());
-
-    // Destroy all objects in destruction queue
-    this.gameObjectsToDestroy.forEach(gameObject => {
-
-      // Explode
-      this.projectileExplode(gameObject);
-
-      gameObject.destroy();
-
-      const index = this.gameObjects.indexOf(gameObject, 0);
-      if (index > -1) {
-        this.gameObjects.splice(index, 1);
+    // this.gameObjects.forEach(gameObject => gameObject.update());
+    for (let id in this.gameObjects) {
+      const gameObject = this.gameObjects[id];
+      if (gameObject.objectType !== ObjectType.GROUND) {
+        gameObject.update();
       }
+    }
 
-    });
+    while (this.gameObjectsToDestroy.length > 0) {
+      const gameObjectsToDestroyCopy = [...this.gameObjectsToDestroy];
 
-    // Clear destroy array
-    this.gameObjectsToDestroy.length = 0;
+      // Clear destroy array
+      this.gameObjectsToDestroy.length = 0;
+  
+      // Destroy all objects in destruction queue
+      gameObjectsToDestroyCopy.forEach(gameObject => {
+  
+        console.log("destyroyng", gameObject);
+  
+        // Explode
+        if (gameObject.objectType === ObjectType.PROJECTILE) {
+          this.projectileExplode(gameObject);
+        }
+  
+        gameObject.destroy();
+  
+        const id = gameObject.getLocalUUID();
+        delete this.gameObjects[id];
+      });
+    }
 
     // Step
     super.Step(settings, input);
@@ -150,7 +162,7 @@ export class Map extends MapBase {
     {
       // CreateGroundPoly(poly, this.world)
       const ground = this.gameObjectFactory.createGround(this.world, null, {polygon})
-      this.ground.push(ground);
+      this.gameObjects[ground.getLocalUUID()] = ground;
     });
 
     // Destroy the old ground
@@ -158,7 +170,8 @@ export class Map extends MapBase {
   }
 
   getGroundByLocalUUID(localUUID: number): Ground {
-    return this.ground.find((ground) => ground.getLocalUUID() === localUUID);
+    // return this.ground.find((ground) => ground.getLocalUUID() === localUUID);
+    return this.gameObjects[localUUID];
   }
 
   /**
@@ -177,7 +190,7 @@ export class Map extends MapBase {
     // Create the ground
     // CreateGroundPoly(vertices, this.world);
     const ground = this.gameObjectFactory.createGround(this.world, null, {polygon})
-    this.ground.push(ground);
+    this.gameObjects[ground.getLocalUUID()] = ground;
   }
 
   /**
@@ -187,16 +200,25 @@ export class Map extends MapBase {
   RemoveGroundPoly(fixture: b2Fixture): void {
     const userData: UserData = fixture.GetUserData();
 
+    console.log("ground poly objectType", userData.objectType);
+
     // Ensure that object is ground
     if (userData.objectType !== ObjectType.GROUND) {
       return;
     }
 
     const localUUID = userData.localUUID;
-    const ground = this.getGroundByLocalUUID(localUUID);
+    // const ground = this.getGroundByLocalUUID(localUUID);
+    const ground = this.gameObjects[localUUID];
+
 
     if (ground) {
-      ground.destroy();
+      if (this.gameObjectsToDestroy.indexOf(ground) === -1) {
+        // Add to destroy queue
+        this.gameObjectsToDestroy.push(ground);
+        console.log("destroying ground", localUUID, ground);
+
+      }
     }
     else {
       console.log("Error attempting to destroy ground with localUUID" + localUUID);
@@ -219,7 +241,9 @@ export class Map extends MapBase {
       if (destroyUserDataList) {
         destroyUserDataList.forEach(destroyUserData => {
           // Find matching GameObject from UserData
-          const gameObjectToDestroy = this.gameObjects.find(g => g.getUserData() === destroyUserData);
+          // const gameObjectToDestroy = this.gameObjects.find(g => g.getUserData() === destroyUserData);
+          const id = destroyUserData.localUUID;
+          const gameObjectToDestroy = this.gameObjects[id];
           // Check for duplicates
           if (this.gameObjectsToDestroy.indexOf(gameObjectToDestroy) === -1) {
             // Add to destroy queue

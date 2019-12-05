@@ -1,14 +1,16 @@
 import { b2Body, b2World, b2Vec2, b2Fixture } from '@flyover/box2d';
-import { UserData } from './UserData';
+import { UserData, ObjectType } from './UserData';
 import { LocalUUIDGenerator } from './LocalUUIDGenerator';
+import { GameObjectSchema } from '../schema/GameObject';
 
-export abstract class GameObject {
+export abstract class GameObject extends GameObjectSchema {
   protected sensorFixture: b2Fixture;
   protected body: b2Body;
 
   private localUUID: number;
 
-  constructor(world: b2World, position?: b2Vec2, bodyParams?: any) {
+  constructor(world: b2World, objectType: ObjectType, position?: b2Vec2, bodyParams?: any) {
+    super(objectType);
     // TODO set localUUID
     const localUUIDGenerator = LocalUUIDGenerator.getInstance();
     this.localUUID = localUUIDGenerator.getNextUUID();

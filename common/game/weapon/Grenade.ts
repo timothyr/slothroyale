@@ -7,7 +7,7 @@ export class Grenade extends GameObject {
   public static readonly grenadeSize: number = 0.5;
 
   constructor(world: b2World, position: b2Vec2, aimAngle: number, direction: number) {
-    super(world, position);
+    super(world, ObjectType.PROJECTILE, position);
 
     const vx = (12 * b2Sin(b2DegToRad(aimAngle)) * direction);
     const vy = - (12 * b2Cos(b2DegToRad(aimAngle)));

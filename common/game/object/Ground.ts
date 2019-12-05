@@ -5,7 +5,7 @@ import { UserData, ObjectType } from './UserData';
 export class Ground extends GameObject {
 
   constructor(world: b2World, position: b2Vec2 = null, bodyParams: any) {
-    super(world, null, bodyParams);
+    super(world, ObjectType.GROUND, null, bodyParams);
   }
 
   createBody(world: b2World, bodyParams: any): b2Body {
