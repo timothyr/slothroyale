@@ -28,6 +28,7 @@
     "cors": "^2.8.5",
     "express": "^4.16.4",
     "express-jwt": "^5.3.1",
-    "gamecommon": "file:../common/"
+    "gamecommon": "file:../common/",
+    "js-angusj-clipper": "1.0.3"
   }
 }

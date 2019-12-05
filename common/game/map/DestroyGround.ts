@@ -3,7 +3,6 @@ import * as hxGeom from './hxGeomAlgo/hxGeomAlgo.js';
 import * as clipperLib from './js-angusj-clipper'; // es6 / typescript
 import { UserData, ObjectType } from '../object/UserData';
 
-let mapClipper;
 const vertexMultiplier = 100000;
 
 // Multiply all vertices by some large constant and round to get int
@@ -19,13 +18,7 @@ const clipperTob2Vec2 = ((v: b2Vec2) => {
   v.y /= vertexMultiplier;
 });
 
-// Load clipper
-clipperLib.loadNativeClipperLibInstanceAsync(
-  // let it autodetect which one to use, but also available WasmOnly and AsmJsOnly
-  clipperLib.NativeClipperLibRequestedFormat.WasmWithAsmJsFallback
-).then((clipper) => {
-  mapClipper = clipper;
-});
+
 
 export interface DestroyedGroundResult {
   polygonsToAdd: b2Vec2[][];
@@ -38,7 +31,7 @@ export interface DestroyedGroundResult {
  * @param polygon Polygon to destroy ground with
  * @param world b2World instance
  */
-export function DestroyGround(aabb: b2AABB, polygon: b2Vec2[], world: b2World): DestroyedGroundResult {
+export function DestroyGround(aabb: b2AABB, polygon: b2Vec2[], world: b2World, mapClipper: any): DestroyedGroundResult {
 
   // Convert polygon from box2d format to Clipper format
   polygon.map(b2Vec2ToClipper);

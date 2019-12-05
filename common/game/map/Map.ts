@@ -30,6 +30,7 @@ export class Map extends MapBase {
   mapSizeMultiplier = 8;
   mapWidthPx = 1280;
   mapHeightPx = 612;
+  mapClipper: any;
 
   player: Player = null;
   playerFireCooldown = false;
@@ -142,7 +143,7 @@ export class Map extends MapBase {
     const polygon = generateCircularPolygon(numSides, explosionSize, x, y);
 
     // Get destroyed result from polygon
-    const res: DestroyedGroundResult = DestroyGround(aabb, polygon, this.world);
+    const res: DestroyedGroundResult = DestroyGround(aabb, polygon, this.world, this.mapClipper);
 
     // Create the new ground
     res.polygonsToAdd.forEach((polygon: b2Vec2[]) => 
@@ -260,5 +261,9 @@ export class Map extends MapBase {
 
   public MouseDown(p: b2Vec2): boolean {
     return super.MouseDown(p);
+  }
+
+  public setMapClipper(mapClipper: any): void {
+    this.mapClipper = mapClipper;
   }
 }
