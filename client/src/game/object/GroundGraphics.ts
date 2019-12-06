@@ -3,7 +3,6 @@ import { GameObjectGraphics } from './GameObjectGraphics';
 import { b2World, b2Vec2 } from 'gamecommon/node_modules/@flyover/box2d';
 import { gfx, metersToPixel } from '@game/graphics/Pixi';
 import { Graphics, Sprite } from 'pixi.js';
-import { GroundSchema } from 'gamecommon/game/schema/Ground';
 
 export class GroundGraphics extends Ground implements GameObjectGraphics {
 
@@ -15,7 +14,7 @@ export class GroundGraphics extends Ground implements GameObjectGraphics {
     gfx.stage.addChild(this.sprite);
   }
 
-  public static CreateGroundFromServer(world: b2World, groundSchema: GroundSchema, localUUID: number): GroundGraphics {
+  public static CreateGroundFromServer(world: b2World, groundSchema: Ground, localUUID: number): GroundGraphics {
     // Convert back to floats
     const vertices = groundSchema.vertices.map(v => v / Ground.vertexMultiplier);
 
