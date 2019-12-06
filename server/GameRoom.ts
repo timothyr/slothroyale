@@ -9,7 +9,7 @@ import { Schema } from "@colyseus/schema";
 
 export class UselessSchema extends Schema {}
 
-@serialize(SchemaSerializer)
+// @serialize(SchemaSerializer)
 export class GameRoom extends Room<World> {
 
   mapClipper: any;
@@ -33,16 +33,17 @@ export class GameRoom extends Room<World> {
     const gameObjectFactory = new GameObjectFactoryServer();
     const map: any = Map.Create(options.map, gameObjectFactory);
 
+    // const mapProto = map.__proto__;
+    // const mapHack: any = new UselessSchema();
+    
     // <hack> to get around SchemaSerializer:12 in setState()
-    const mapProto = map.__proto__;
-    const newWorld: any = new UselessSchema();
-    map.__proto__ = newWorld.__proto__
+    // map.__proto__ = mapHack.__proto__;
 
     this.setState(map);
 
-    map.__proto__ = mapProto;
+    // map.__proto__ = mapProto;
     // </hack>
-
+    
     map.setMapClipper(this.mapClipper);
 
     game.LoadMap(map);

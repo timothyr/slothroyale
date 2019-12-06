@@ -3,8 +3,13 @@ import { b2Vec2 } from '@flyover/box2d';
 import { gfx } from '@game/graphics/Pixi';
 import { Point, interaction } from 'pixi.js';
 import { GameObjectFactory } from 'gamecommon/game/object/GameObjectFactory';
+import { World } from 'gamecommon/game/schema/World';
+import { Ground } from 'gamecommon/game/object/Ground';
+import { GameObjectFactoryClient } from '@game/object/GameObjectFactoryClient';
 
 export class MapGraphics extends Map {
+
+  gameObjectFactory: GameObjectFactoryClient;
 
   mapPivot: Point = new Point(0, 0);
   mouseDragPos: Point = new Point(0, 0);
@@ -12,16 +17,30 @@ export class MapGraphics extends Map {
 
   // player: PlayerGraphics = null;
 
-  constructor(mapOptions: MapOptions, gameObjectFactory: GameObjectFactory) {
+  constructor(mapOptions: MapOptions, gameObjectFactory: GameObjectFactoryClient) {
     super(mapOptions, gameObjectFactory);
     document.body.style.backgroundColor = 'black';
     this.addMapEventHandlers();
   }
 
-  public static Create(mapOptions: MapOptions, gameObjectFactory: GameObjectFactory): Map {
+  public static CreateFromWorld(world: World, gameObjectFactory: GameObjectFactoryClient): MapGraphics {
+    const mapOptions: MapOptions = {
+      width: world.mapWidthPx,
+      height: world.mapHeightPx,
+      polygons: [],
+      playerPositions: []
+    }
     return new MapGraphics(mapOptions, gameObjectFactory);
   }
 
+  public static Create(mapOptions: MapOptions, gameObjectFactory: GameObjectFactoryClient): MapGraphics {
+    return new MapGraphics(mapOptions, gameObjectFactory);
+  }
+
+  public AddGround(ground: Ground) {
+    const groundObject = this.gameObjectFactory.createGroundFromServer(this.world, ground);
+    this.groundObjects[ground.localUUID] = groundObject;
+  }
 
   // ----- Event Handlers -----
 

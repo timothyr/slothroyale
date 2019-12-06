@@ -9,7 +9,6 @@ import { playerPreSolve, playerEndContact, playerBeginContact } from '../player/
 import { GameObject } from '../object/GameObject';
 import { projectileBeginContact } from '../weapon/ContactListener';
 import { GameObjectFactory } from '../object/GameObjectFactory';
-import { Ground } from '../object/Ground';
 
 export interface MapOptions {
   width: number;
@@ -37,7 +36,7 @@ export class Map extends MapBase {
   gameObjectFactory: GameObjectFactory;
   // gameObjects: GameObject[] = [];
   gameObjectsToDestroy: GameObject[] = [];
-  ground: Ground[] = []
+  // ground: Ground[] = []
 
   public static Create(mapOptions: MapOptions, gameObjectFactory: GameObjectFactory): Map {
     return new Map(mapOptions, gameObjectFactory);
@@ -51,21 +50,23 @@ export class Map extends MapBase {
     // Create all ground polygons
     map.polygons.forEach(polyShape => this.CreateMapPoly(polyShape));
 
-    // Create player
-    const playerGenPos = map.playerPositions[0];
-    const playerPosX = (playerGenPos.x / this.mapSizeMultiplier) - ((this.mapWidthPx / 2) / this.mapSizeMultiplier);
-    const playerPosY = (playerGenPos.y / -this.mapSizeMultiplier) - ((this.mapHeightPx / 2) / -this.mapSizeMultiplier);
-    const playerPosition = new b2Vec2(playerPosX, playerPosY);
-    this.player = this.gameObjectFactory.createPlayer(this.world, playerPosition);
+    if (map.playerPositions.length > 0) {
+      // Create player
+      const playerGenPos = map.playerPositions[0];
+      const playerPosX = (playerGenPos.x / this.mapSizeMultiplier) - ((this.mapWidthPx / 2) / this.mapSizeMultiplier);
+      const playerPosY = (playerGenPos.y / -this.mapSizeMultiplier) - ((this.mapHeightPx / 2) / -this.mapSizeMultiplier);
+      const playerPosition = new b2Vec2(playerPosX, playerPosY);
+      this.player = this.gameObjectFactory.createPlayer(this.world, playerPosition);
 
-    // Generate other random players
-    for (let i = 1; i < 5; i++) {
-      const randPlayerGenPos = map.playerPositions[i];
-      const randPlayerPosX = (randPlayerGenPos.x / this.mapSizeMultiplier) - ((this.mapWidthPx / 2) / this.mapSizeMultiplier);
-      const randPlayerPosY = (randPlayerGenPos.y / -this.mapSizeMultiplier) - ((this.mapHeightPx / 2) / -this.mapSizeMultiplier);
-      const randPlayerPosition = new b2Vec2(randPlayerPosX, randPlayerPosY);
-      const randPlayer = this.gameObjectFactory.createPlayer(this.world, randPlayerPosition);
-      this.gameObjects[randPlayer.getLocalUUID()] = randPlayer;
+      // Generate other random players
+      for (let i = 1; i < 5; i++) {
+        const randPlayerGenPos = map.playerPositions[i];
+        const randPlayerPosX = (randPlayerGenPos.x / this.mapSizeMultiplier) - ((this.mapWidthPx / 2) / this.mapSizeMultiplier);
+        const randPlayerPosY = (randPlayerGenPos.y / -this.mapSizeMultiplier) - ((this.mapHeightPx / 2) / -this.mapSizeMultiplier);
+        const randPlayerPosition = new b2Vec2(randPlayerPosX, randPlayerPosY);
+        const randPlayer = this.gameObjectFactory.createPlayer(this.world, randPlayerPosition);
+        this.gameObjects[randPlayer.getLocalUUID()] = randPlayer;
+      }
     }
 
     // Create contact listener for the world
@@ -127,9 +128,14 @@ export class Map extends MapBase {
         }
   
         gameObject.destroy();
-  
+
         const id = gameObject.getLocalUUID();
-        delete this.gameObjects[id];
+        if (gameObject.objectType === ObjectType.GROUND) {
+          delete this.groundObjects[id];
+        }
+        else {
+          delete this.gameObjects[id];
+        }
       });
     }
 
@@ -162,16 +168,11 @@ export class Map extends MapBase {
     {
       // CreateGroundPoly(poly, this.world)
       const ground = this.gameObjectFactory.createGround(this.world, null, {polygon})
-      this.gameObjects[ground.getLocalUUID()] = ground;
+      this.groundObjects[ground.getLocalUUID()] = ground;
     });
 
     // Destroy the old ground
     res.fixturesToDelete.forEach((fixture: b2Fixture) => this.RemoveGroundPoly(fixture));
-  }
-
-  getGroundByLocalUUID(localUUID: number): Ground {
-    // return this.ground.find((ground) => ground.getLocalUUID() === localUUID);
-    return this.gameObjects[localUUID];
   }
 
   /**
@@ -190,7 +191,7 @@ export class Map extends MapBase {
     // Create the ground
     // CreateGroundPoly(vertices, this.world);
     const ground = this.gameObjectFactory.createGround(this.world, null, {polygon})
-    this.gameObjects[ground.getLocalUUID()] = ground;
+    this.groundObjects[ground.getLocalUUID()] = ground;
   }
 
   /**
@@ -208,8 +209,7 @@ export class Map extends MapBase {
     }
 
     const localUUID = userData.localUUID;
-    // const ground = this.getGroundByLocalUUID(localUUID);
-    const ground = this.gameObjects[localUUID];
+    const ground = this.groundObjects[localUUID];
 
 
     if (ground) {

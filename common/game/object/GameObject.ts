@@ -7,14 +7,16 @@ export abstract class GameObject extends GameObjectSchema {
   protected sensorFixture: b2Fixture;
   protected body: b2Body;
 
-  private localUUID: number;
-
-  constructor(world: b2World, objectType: ObjectType, position?: b2Vec2, bodyParams?: any) {
+  constructor(world: b2World, objectType: ObjectType, position?: b2Vec2, bodyParams?: any, localUUID?: number) {
     super(objectType);
-    // TODO set localUUID
-    const localUUIDGenerator = LocalUUIDGenerator.getInstance();
-    this.localUUID = localUUIDGenerator.getNextUUID();
-    console.log("new local uuid " + this.localUUID);
+    if (localUUID) {
+      this.localUUID = localUUID;
+    } else {
+      const localUUIDGenerator = LocalUUIDGenerator.getInstance();
+      this.localUUID = localUUIDGenerator.getNextUUID();
+    }
+
+    // console.log("new local uuid " + this.localUUID);
     this.body = this.createBody(world, bodyParams);
     this.setUserDataLocalUUID();
 

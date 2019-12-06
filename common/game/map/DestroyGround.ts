@@ -2,20 +2,19 @@ import { b2AABB, b2Vec2, b2Fixture, b2World } from '@flyover/box2d';
 import * as hxGeom from './hxGeomAlgo/hxGeomAlgo.js';
 import * as clipperLib from './js-angusj-clipper'; // es6 / typescript
 import { UserData, ObjectType } from '../object/UserData';
-
-const vertexMultiplier = 100000;
+import { Ground } from '../object/Ground';
 
 // Multiply all vertices by some large constant and round to get int
 // box2d uses floats like 89.3293283 while Clipper can only handle integers
-const b2Vec2ToClipper = ((v: b2Vec2) => {
-  v.x = Math.round(v.x * vertexMultiplier);
-  v.y = Math.round(v.y * vertexMultiplier);
+export const b2Vec2ToClipper = ((v: b2Vec2) => {
+  v.x = Math.round(v.x * Ground.vertexMultiplier);
+  v.y = Math.round(v.y * Ground.vertexMultiplier);
 });
 
 // Divide all vertices to return the vertices back to original box2d format
-const clipperTob2Vec2 = ((v: b2Vec2) => {
-  v.x /= vertexMultiplier;
-  v.y /= vertexMultiplier;
+export const clipperTob2Vec2 = ((v: b2Vec2) => {
+  v.x /= Ground.vertexMultiplier;
+  v.y /= Ground.vertexMultiplier;
 });
 
 
