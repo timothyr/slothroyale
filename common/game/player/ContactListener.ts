@@ -1,5 +1,5 @@
 import { b2Fixture, b2WorldManifold, b2Atan2, b2Vec2, b2Contact } from '@flyover/box2d';
-import { PlayerMovement } from './Player';
+import { PlayerMovement, Player } from './Player';
 import { MoveX } from '../core/InputTypes';
 import { UserData, ObjectType } from '../object/UserData';
 
@@ -32,10 +32,10 @@ export const playerPreSolve = (contact: b2Contact, fixtureA: b2Fixture, fixtureB
   const getForce = (playerMovement: PlayerMovement, localNormal: b2Vec2) => {
     const angle = b2Atan2(localNormal.y, localNormal.x);
     // Only move if the hill isn't too steep
-    if (playerMovement.minAngle < angle && angle < playerMovement.maxAngle
+    if (Player.PLAYER_MIN_MOVEMENT_ANGLE < angle && angle < Player.PLAYER_MAX_MOVEMENT_ANGLE
       // Let the player move down any hill
-      || playerMovement.moveX === MoveX.RIGHT && playerMovement.minAngle > angle
-      || playerMovement.moveX === MoveX.LEFT && angle > playerMovement.maxAngle) {
+      || playerMovement.moveX === MoveX.RIGHT && Player.PLAYER_MIN_MOVEMENT_ANGLE > angle
+      || playerMovement.moveX === MoveX.LEFT && angle > Player.PLAYER_MAX_MOVEMENT_ANGLE) {
       // Add velocity
       surfaceVelocityModifier += playerMovement.velocity;
     }

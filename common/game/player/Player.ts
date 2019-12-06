@@ -6,20 +6,12 @@ import {
 import { UserData, ObjectType } from '../object/UserData';
 import { GameObject } from '../object/GameObject';
 
-const PLAYER_MIN_ANGLE = -90 - 82; // - 70;
-const PLAYER_MAX_ANGLE = -90 + 82; // + 70;
-
-const AIM_MIN_ANGLE = 0;
-const AIM_MAX_ANGLE = 180;
-
 export const enum PlayerDirection {
   LEFT = -1,
   RIGHT = 1
 }
 
 export interface PlayerMovement extends UserData {
-  minAngle: number;
-  maxAngle: number;
   velocity: number;
   moveX: MoveX;
   direction: PlayerDirection;
@@ -27,6 +19,15 @@ export interface PlayerMovement extends UserData {
 }
 
 export class Player extends GameObject {
+
+  public static readonly PLAYER_VELOCITY = 2;
+
+  public static readonly PLAYER_MIN_MOVEMENT_ANGLE: number = b2DegToRad(-90 - 82);
+  public static readonly PLAYER_MAX_MOVEMENT_ANGLE: number = b2DegToRad(-90 + 82);
+
+  public static readonly AIM_MIN_ANGLE = 0;
+  public static readonly AIM_MAX_ANGLE = 180;
+  public static readonly AIM_MOVEMENT_RATE = 2;
 
   sensorFixture: b2Fixture;
   playerMovement: PlayerMovement;
@@ -57,8 +58,6 @@ export class Player extends GameObject {
 
     this.playerMovement = {
       objectType: ObjectType.PLAYER,
-      minAngle: b2DegToRad(PLAYER_MIN_ANGLE),
-      maxAngle: b2DegToRad(PLAYER_MAX_ANGLE),
       velocity: 0,
       moveX: MoveX.NONE,
       direction: PlayerDirection.RIGHT,
@@ -113,11 +112,11 @@ export class Player extends GameObject {
       switch (input.moveX) {
         case MoveX.LEFT:
           this.direction = direction = PlayerDirection.LEFT;
-          velocity = -2;
+          velocity = -Player.PLAYER_VELOCITY;
           break;
         case MoveX.RIGHT:
           this.direction = direction = PlayerDirection.RIGHT;
-          velocity = 2;
+          velocity = Player.PLAYER_VELOCITY;
           break;
       }
 
@@ -155,13 +154,13 @@ export class Player extends GameObject {
   }
 
   increaseAimAngle(): void {
-    this.aimAngle += 2;
-    this.aimAngle = b2Min(this.aimAngle, AIM_MAX_ANGLE);
+    this.aimAngle += Player.AIM_MOVEMENT_RATE;
+    this.aimAngle = b2Min(this.aimAngle, Player.AIM_MAX_ANGLE);
   }
 
   decreaseAimAngle(): void {
-    this.aimAngle -= 2;
-    this.aimAngle = b2Max(this.aimAngle, AIM_MIN_ANGLE);
+    this.aimAngle -= Player.AIM_MOVEMENT_RATE;
+    this.aimAngle = b2Max(this.aimAngle, Player.AIM_MIN_ANGLE);
   }
 
   addNumFootContacts(num: number) {
