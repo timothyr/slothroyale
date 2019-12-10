@@ -4,8 +4,8 @@ import { Input } from '../core/InputTypes';
 import { generateCircularPolygon } from './PolygonBuilder';
 import { DestroyGround, DestroyedGroundResult } from './DestroyGround';
 import { UserData, ObjectType } from '../object/UserData';
-import { Player } from '../player/Player';
-import { playerPreSolve, playerEndContact, playerBeginContact } from '../player/ContactListener';
+import { Player, PlayerMovement } from '../player/Player';
+import { playerPreSolve } from '../player/ContactListener';
 import { GameObject } from '../object/GameObject';
 import { projectileBeginContact } from '../weapon/ContactListener';
 import { GameObjectFactory } from '../object/GameObjectFactory';
@@ -31,12 +31,13 @@ export class Map extends MapBase {
   mapHeightPx = 612;
   mapClipper: any;
 
-  player: Player = null;
   playerFireCooldown = false;
+  playerPositions: b2Vec2[];
+  curPlayerPosition = 0;
+  curPlayerLocalUUID: number = 0;
   gameObjectFactory: GameObjectFactory;
-  // gameObjects: GameObject[] = [];
   gameObjectsToDestroy: GameObject[] = [];
-  // ground: Ground[] = []
+
 
   public static Create(mapOptions: MapOptions, gameObjectFactory: GameObjectFactory): Map {
     return new Map(mapOptions, gameObjectFactory);
@@ -51,26 +52,30 @@ export class Map extends MapBase {
     map.polygons.forEach(polyShape => this.CreateMapPoly(polyShape));
 
     if (map.playerPositions.length > 0) {
-      // Create player
-      const playerGenPos = map.playerPositions[0];
-      const playerPosX = (playerGenPos.x / this.mapSizeMultiplier) - ((this.mapWidthPx / 2) / this.mapSizeMultiplier);
-      const playerPosY = (playerGenPos.y / -this.mapSizeMultiplier) - ((this.mapHeightPx / 2) / -this.mapSizeMultiplier);
-      const playerPosition = new b2Vec2(playerPosX, playerPosY);
-      this.player = this.gameObjectFactory.createPlayer(this.world, playerPosition);
+      this.playerPositions = map.playerPositions;
 
-      // Generate other random players
-      for (let i = 1; i < 5; i++) {
-        const randPlayerGenPos = map.playerPositions[i];
-        const randPlayerPosX = (randPlayerGenPos.x / this.mapSizeMultiplier) - ((this.mapWidthPx / 2) / this.mapSizeMultiplier);
-        const randPlayerPosY = (randPlayerGenPos.y / -this.mapSizeMultiplier) - ((this.mapHeightPx / 2) / -this.mapSizeMultiplier);
-        const randPlayerPosition = new b2Vec2(randPlayerPosX, randPlayerPosY);
-        const randPlayer = this.gameObjectFactory.createPlayer(this.world, randPlayerPosition);
-        this.gameObjects[randPlayer.getLocalUUID()] = randPlayer;
-      }
+      // Generate random players
+      // for (let i = 0; i < 5; i++) {
+      //   const player = this.CreatePlayer();
+      //   this.curPlayerLocalUUID = player.getLocalUUID();
+      // }
     }
 
     // Create contact listener for the world
     this.CreateContactListener();
+  }
+
+  public CreatePlayer(name?: string): Player {
+    const playerGenPos = this.playerPositions[this.curPlayerPosition];
+    this.curPlayerPosition += 1;
+    const playerPosX = (playerGenPos.x / this.mapSizeMultiplier) - ((this.mapWidthPx / 2) / this.mapSizeMultiplier);
+    const playerPosY = (playerGenPos.y / -this.mapSizeMultiplier) - ((this.mapHeightPx / 2) / -this.mapSizeMultiplier);
+    const playerPosition = new b2Vec2(playerPosX, playerPosY);
+    const player = this.gameObjectFactory.createPlayer(this.world, playerPosition, name);
+
+    this.players[player.getLocalUUID()] = player;
+
+    return player;
   }
 
   /**
@@ -79,31 +84,36 @@ export class Map extends MapBase {
    * @param input Input from Main
    */
   public Step(settings: Settings, input: Input): void {
+    const player = this.players[this.curPlayerLocalUUID];
 
-    if (this.player) {
-      this.player.handleInput(input);
-      this.player.update();
+    if (player) {
+      player.handleInput(input);
+      player.update();
 
       if (this.playerFireCooldown && !input.fire) {
         this.playerFireCooldown = false;
       }
 
       if (input.fire && !this.playerFireCooldown) {
-        const playerPosition = this.player.getPosition();
+        const playerPosition = player.getPosition();
 
-        const gx = playerPosition.x + (2 * b2Sin(b2DegToRad(this.player.aimAngle)) * this.player.direction);
-        const gy = playerPosition.y - (2 * b2Cos(b2DegToRad(this.player.aimAngle)));
+        const gx = playerPosition.x + (2 * b2Sin(b2DegToRad(player.aimAngle)) * player.direction);
+        const gy = playerPosition.y - (2 * b2Cos(b2DegToRad(player.aimAngle)));
         const grenadePosition = new b2Vec2(gx, gy);
 
-        const grenade = this.gameObjectFactory.createGrenade(this.world, grenadePosition, this.player.aimAngle, this.player.direction);
+        const grenade = this.gameObjectFactory.createGrenade(this.world, grenadePosition, player.aimAngle, player.direction);
         this.gameObjects[grenade.getLocalUUID()] = grenade;
 
         this.playerFireCooldown = true;
       }
     }
     
+    // Update graphics of all players
+    for (let id in this.players) {
+      this.players[id].update();
+    }
 
-    // this.gameObjects.forEach(gameObject => gameObject.update());
+    // Update graphics of all gameobjects
     for (let id in this.gameObjects) {
       const gameObject = this.gameObjects[id];
       if (gameObject.objectType !== ObjectType.GROUND) {
@@ -111,6 +121,7 @@ export class Map extends MapBase {
       }
     }
 
+    // Destroy game objects in queue
     while (this.gameObjectsToDestroy.length > 0) {
       const gameObjectsToDestroyCopy = [...this.gameObjectsToDestroy];
 
@@ -119,8 +130,6 @@ export class Map extends MapBase {
   
       // Destroy all objects in destruction queue
       gameObjectsToDestroyCopy.forEach(gameObject => {
-  
-        console.log("destyroyng", gameObject);
   
         // Explode
         if (gameObject.objectType === ObjectType.PROJECTILE) {
@@ -236,6 +245,14 @@ export class Map extends MapBase {
       const userDataA: UserData = fixtureA.GetUserData() || null;
       const userDataB: UserData = fixtureB.GetUserData() || null;
 
+      if (userDataA && userDataA.objectType === ObjectType.PLAYER) {
+        this.players[userDataA.localUUID].addNumFootContacts(1);
+      }
+    
+      if (userDataB && userDataB.objectType === ObjectType.PLAYER) {
+        this.players[userDataB.localUUID].addNumFootContacts(1);
+      }
+
       // Destroy projectile on hit
       const destroyUserDataList: UserData[] = projectileBeginContact(contact, fixtureA, fixtureB, userDataA, userDataB);
       if (destroyUserDataList) {
@@ -251,20 +268,22 @@ export class Map extends MapBase {
           }
         });
       }
-
-      const playerContactChange = playerBeginContact(contact, fixtureA, fixtureB, userDataA, userDataB);
-      this.player.addNumFootContacts(playerContactChange);
     };
 
     listener.EndContact = (contact: b2Contact) => {
       const fixtureA: b2Fixture = contact.GetFixtureA();
       const fixtureB: b2Fixture = contact.GetFixtureB();
 
-      const userDataA: UserData = fixtureA.GetUserData() || null;
-      const userDataB: UserData = fixtureB.GetUserData() || null;
+      let userDataA: UserData | PlayerMovement = fixtureA.GetUserData() || null;
+      let userDataB: UserData | PlayerMovement = fixtureB.GetUserData() || null;
 
-      const playerContactChange = playerEndContact(contact, fixtureA, fixtureB, userDataA, userDataB);
-      this.player.addNumFootContacts(playerContactChange);
+      if (userDataA && userDataA.objectType === ObjectType.PLAYER) {
+        this.players[userDataA.localUUID].addNumFootContacts(-1);
+      }
+    
+      if (userDataB && userDataB.objectType === ObjectType.PLAYER) {
+        this.players[userDataB.localUUID].addNumFootContacts(-1);
+      }
     };
 
     // listener.PostSolve = function(contact, impulse) {

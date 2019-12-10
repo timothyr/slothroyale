@@ -6,6 +6,7 @@ import { GameObjectFactory } from 'gamecommon/game/object/GameObjectFactory';
 import { World } from 'gamecommon/game/schema/World';
 import { Ground } from 'gamecommon/game/object/Ground';
 import { GameObjectFactoryClient } from '@game/object/GameObjectFactoryClient';
+import { Player } from 'gamecommon/game/player/Player';
 
 export class MapGraphics extends Map {
 
@@ -35,6 +36,13 @@ export class MapGraphics extends Map {
 
   public static Create(mapOptions: MapOptions, gameObjectFactory: GameObjectFactoryClient): MapGraphics {
     return new MapGraphics(mapOptions, gameObjectFactory);
+  }
+
+  public AddPlayer(player: Player, sessionId: string) {
+    const playerObject = this.gameObjectFactory.createPlayerFromServer(this.world, player, sessionId);
+    this.players[player.localUUID] = playerObject;
+    this.curPlayerLocalUUID = player.localUUID;
+    console.log("created player", playerObject);
   }
 
   public AddGround(ground: Ground) {

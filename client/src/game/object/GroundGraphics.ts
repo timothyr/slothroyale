@@ -9,7 +9,7 @@ export class GroundGraphics extends Ground implements GameObjectGraphics {
   sprite: Sprite | Graphics;
 
   constructor(world: b2World, position: b2Vec2 = null, bodyParams: any, localUUID?: number) {
-    super(world, null, bodyParams);
+    super(world, null, bodyParams, localUUID);
     this.sprite = this.createSprite(bodyParams);
     gfx.stage.addChild(this.sprite);
   }

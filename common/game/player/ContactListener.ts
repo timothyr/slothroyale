@@ -3,6 +3,11 @@ import { PlayerMovement, Player } from './Player';
 import { MoveX } from '../core/InputTypes';
 import { UserData, ObjectType } from '../object/UserData';
 
+export interface PlayerContactResult {
+  contactCount: number;
+  playerLocalUUID: number;
+}
+
 /**
  * Apply player movement forces on contact
  * @param contact Contact reference
@@ -53,76 +58,4 @@ export const playerPreSolve = (contact: b2Contact, fixtureA: b2Fixture, fixtureB
   }
 
   contact.SetTangentSpeed(surfaceVelocityModifier);
-};
-
-/**
- * Increase counter for foot contacts when player begins contact with an object
- * @param contact Contact reference
- * @param fixtureA Fixture A in the contact
- * @param fixtureB Fixture B in the contact
- * @param userDataA User Data of Fixture A
- * @param userDataB User Data of Fixture B
- */
-export const playerBeginContact = (contact: b2Contact,
-                                   fixtureA: b2Fixture, fixtureB: b2Fixture,
-                                   userDataA: UserData, userDataB: UserData): number => {
-
-  let playerMovementA: PlayerMovement = null;
-  let playerMovementB: PlayerMovement = null;
-
-  if (userDataA && userDataA.objectType === ObjectType.PLAYER) {
-    playerMovementA = userDataA as PlayerMovement;
-  }
-
-  if (userDataB && userDataB.objectType === ObjectType.PLAYER) {
-    playerMovementB = userDataB as PlayerMovement;
-  }
-
-  let contactCount = 0;
-
-  if (playerMovementA) {
-    contactCount++;
-  }
-
-  if (playerMovementB) {
-    contactCount++;
-  }
-
-  return contactCount;
-};
-
-/**
- * Decrease counter for foot contacts when player ends contact with an object
- * @param contact Contact reference
- * @param fixtureA Fixture A in the contact
- * @param fixtureB Fixture B in the contact
- * @param userDataA User Data of Fixture A
- * @param userDataB User Data of Fixture B
- */
-export const playerEndContact = (contact: b2Contact,
-                                 fixtureA: b2Fixture, fixtureB: b2Fixture,
-                                 userDataA: UserData, userDataB: UserData): number => {
-
-  let playerMovementA: PlayerMovement = null;
-  let playerMovementB: PlayerMovement = null;
-
-  if (userDataA && userDataA.objectType === ObjectType.PLAYER) {
-    playerMovementA = userDataA as PlayerMovement;
-  }
-
-  if (userDataB && userDataB.objectType === ObjectType.PLAYER) {
-    playerMovementB = userDataB as PlayerMovement;
-  }
-
-  let contactCount = 0;
-
-  if (playerMovementA) {
-    contactCount--;
-  }
-
-  if (playerMovementB) {
-    contactCount--;
-  }
-
-  return contactCount;
 };

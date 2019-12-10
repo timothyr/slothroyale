@@ -13,6 +13,7 @@ export class UselessSchema extends Schema {}
 export class GameRoom extends Room<World> {
 
   mapClipper: any;
+  map: Map;
 
   constructor() {
     super()
@@ -31,7 +32,7 @@ export class GameRoom extends Room<World> {
     let game: Main;
     game = new Main(0, new Input());
     const gameObjectFactory = new GameObjectFactoryServer();
-    const map: any = Map.Create(options.map, gameObjectFactory);
+    this.map = Map.Create(options.map, gameObjectFactory);
 
     // const mapProto = map.__proto__;
     // const mapHack: any = new UselessSchema();
@@ -39,19 +40,21 @@ export class GameRoom extends Room<World> {
     // <hack> to get around SchemaSerializer:12 in setState()
     // map.__proto__ = mapHack.__proto__;
 
-    this.setState(map);
+    this.setState(this.map);
 
     // map.__proto__ = mapProto;
     // </hack>
     
-    map.setMapClipper(this.mapClipper);
+    this.map.setMapClipper(this.mapClipper);
 
-    game.LoadMap(map);
+    game.LoadMap(this.map);
 
     this.setSimulationInterval((deltaTime) => game.SimulationLoop(deltaTime));
   }
 
   onJoin (client: Client, options: any) {
+    console.log("Creating player", client.sessionId);
+    this.map.CreatePlayer(client.sessionId);
   }
 
   onMessage (client: Client, message: any) {

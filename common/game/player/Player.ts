@@ -5,6 +5,7 @@ import {
 } from '@flyover/box2d';
 import { UserData, ObjectType } from '../object/UserData';
 import { GameObject } from '../object/GameObject';
+import { type } from '@colyseus/schema';
 
 export const enum PlayerDirection {
   LEFT = -1,
@@ -29,6 +30,8 @@ export class Player extends GameObject {
   public static readonly AIM_MAX_ANGLE = 180;
   public static readonly AIM_MOVEMENT_RATE = 2;
 
+  @type("string") public name: string;
+
   sensorFixture: b2Fixture;
   playerMovement: PlayerMovement;
   jumpTimer: number;
@@ -38,8 +41,13 @@ export class Player extends GameObject {
 
   aimAngle = 90;
 
-  constructor(world: b2World, position: b2Vec2) {
-    super(world, ObjectType.PLAYER, position);
+  constructor(world: b2World, position: b2Vec2, localUUID?: number, name?: string) {
+    super(world, ObjectType.PLAYER, position, null, localUUID);
+    if (name) {
+      this.name = name;
+    }
+    this.x = position.x;
+    this.y = position.y;
   }
 
   createBody(world: b2World): b2Body {

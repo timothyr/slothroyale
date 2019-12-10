@@ -11,8 +11,8 @@ export class PlayerGraphics extends Player implements GameObjectGraphics {
 
   aimArrow: DisplayObject;
 
-  constructor(world: b2World, position: b2Vec2) {
-    super(world, position);
+  constructor(world: b2World, position: b2Vec2, localUUID?: number, name?: string) {
+    super(world, position, localUUID, name);
     this.sprite = this.createSprite();
     gfx.stage.addChild(this.sprite);
     this.aimArrow.setTransform(undefined, undefined, undefined, undefined, b2DegToRad(this.aimAngle * this.direction * -1));

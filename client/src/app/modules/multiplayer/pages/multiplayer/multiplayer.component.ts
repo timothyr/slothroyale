@@ -40,15 +40,24 @@ export class MultiplayerComponent implements OnInit {
         this.startGameLoop(room.state);
 
         room.state.gameObjects.onAdd = (gameObjectSchema, sessionId: string) => {
-          console.log("Creating gameobject", gameObjectSchema.objectType, gameObjectSchema);
+          // console.log("Creating gameobject", gameObjectSchema.objectType, gameObjectSchema);
+        };
+
+        room.state.players.onAdd = (player, sessionId: string) => {
+          if (room.sessionId === player.name) {
+            console.log("Created your player", player.name, player);
+          } else {
+            console.log("Creating player", player.name, player);
+          }
+          this.map.AddPlayer(player, sessionId);
         };
 
         room.state.groundObjects.onAdd = (ground, sessionId: string) => {
-          console.log("Creating ground", ground.objectType, sessionId, ground);
+          // console.log("Creating ground", ground.objectType, sessionId, ground);
           this.map.AddGround(ground);
         };
         room.state.groundObjects.onRemove = (ground, sessionId: string) => {
-          console.log("Destroying ground", ground.objectType);
+          // console.log("Destroying ground", ground.objectType);
         };
 
 
