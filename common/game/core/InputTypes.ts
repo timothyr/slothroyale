@@ -1,13 +1,13 @@
 export enum MoveX {
+    NONE,
     LEFT,
-    RIGHT,
-    NONE
+    RIGHT
 }
 
 export enum MoveY {
+    NONE,
     UP,
-    DOWN,
-    NONE
+    DOWN
 }
 
 export class Input {

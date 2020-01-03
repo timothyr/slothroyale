@@ -3,6 +3,10 @@ import { Input, MoveX, MoveY } from 'gamecommon/game/core/InputTypes';
 export class Controls {
 
   public input: Input;
+  private left = false;
+  private right = false;
+  private up = false;
+  private down = false;
 
   constructor(input: Input) {
     this.input = input;
@@ -26,31 +30,55 @@ export class Controls {
         this.input.jump = isPressed;
         break;
       case 'ArrowLeft':
+        this.left = isPressed;
+
         if (isPressed) {
           this.input.moveX = MoveX.LEFT;
         } else {
-          this.input.moveX = MoveX.NONE;
+          if (this.right) {
+            this.input.moveX = MoveX.RIGHT;
+          } else {
+            this.input.moveX = MoveX.NONE;
+          }
         }
         break;
       case 'ArrowRight':
+        this.right = isPressed;
+
         if (isPressed) {
           this.input.moveX = MoveX.RIGHT;
         } else {
-          this.input.moveX = MoveX.NONE;
+          if (this.left) {
+            this.input.moveX = MoveX.LEFT;
+          } else {
+            this.input.moveX = MoveX.NONE;
+          }
         }
         break;
       case 'ArrowDown':
+        this.down = isPressed;
+
         if (isPressed) {
           this.input.moveY = MoveY.DOWN;
         } else {
-          this.input.moveY = MoveY.NONE;
+          if (this.up) {
+            this.input.moveY = MoveY.UP;
+          } else {
+            this.input.moveY = MoveY.NONE;
+          }
         }
         break;
       case 'ArrowUp':
+        this.up = isPressed;
+
         if (isPressed) {
           this.input.moveY = MoveY.UP;
         } else {
-          this.input.moveY = MoveY.NONE;
+          if (this.down) {
+            this.input.moveY = MoveY.DOWN;
+          } else {
+            this.input.moveY = MoveY.NONE;
+          }
         }
         break;
     }
