@@ -28,6 +28,7 @@ export class GameRoom extends Room<World> {
 
   onCreate (options: any) {
     // console.log("options", options);
+    // console.log("Creating room");
     
     let game: Main;
     game = new Main(0, new Input());
@@ -49,7 +50,7 @@ export class GameRoom extends Room<World> {
 
     game.LoadMap(this.map);
 
-    this.setSimulationInterval((deltaTime) => game.SimulationLoop(deltaTime));
+    this.setSimulationInterval((deltaTime) => game.SimulationLoop(deltaTime), 16.6);
   }
 
   onJoin (client: Client, options: any) {
@@ -57,7 +58,9 @@ export class GameRoom extends Room<World> {
     this.map.CreatePlayer(client.sessionId);
   }
 
-  onMessage (client: Client, message: any) {
+  onMessage (client: Client, input: Input) {
+    // console.log("client msg", client.sessionId, input);
+    this.map.UpdatePlayerInputFromServer(client.sessionId, input);
   }
 
   onLeave (client: Client, consented: boolean) {

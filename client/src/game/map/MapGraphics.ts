@@ -38,11 +38,13 @@ export class MapGraphics extends Map {
     return new MapGraphics(mapOptions, gameObjectFactory);
   }
 
-  public AddPlayer(player: Player, sessionId: string) {
+  public AddPlayer(player: Player, sessionId: string): Player {
     const playerObject = this.gameObjectFactory.createPlayerFromServer(this.world, player, sessionId);
     this.players[player.localUUID] = playerObject;
     this.curPlayerLocalUUID = player.localUUID;
     console.log("created player", playerObject);
+
+    return playerObject;
   }
 
   public AddGround(ground: Ground) {

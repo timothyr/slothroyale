@@ -41,6 +41,8 @@ export class Player extends GameObject {
 
   aimAngle = 90;
 
+  serverInput: Input = null;
+
   constructor(world: b2World, position: b2Vec2, localUUID?: number, name?: string) {
     super(world, ObjectType.PLAYER, position, null, localUUID);
     if (name) {
@@ -159,6 +161,16 @@ export class Player extends GameObject {
     }
 
     this.jumpTimerTick();
+  }
+
+  setServerInput(input: Input): void {
+    this.serverInput = input;
+  }
+
+  handleServerInput(): void {
+    if (this.serverInput) {
+      this.handleInput(this.serverInput);
+    }
   }
 
   increaseAimAngle(): void {

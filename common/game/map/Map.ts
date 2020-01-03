@@ -17,6 +17,10 @@ export interface MapOptions {
   playerPositions: b2Vec2[];
 }
 
+export interface IPlayerHash {
+  [sessionId: string] : number;
+}
+
 export class Map extends MapBase {
 
   constructor(mapOptions: MapOptions, gameObjectFactory: GameObjectFactory) {
@@ -38,6 +42,7 @@ export class Map extends MapBase {
   gameObjectFactory: GameObjectFactory;
   gameObjectsToDestroy: GameObject[] = [];
 
+  playerSessionIdHash: IPlayerHash = {};
 
   public static Create(mapOptions: MapOptions, gameObjectFactory: GameObjectFactory): Map {
     return new Map(mapOptions, gameObjectFactory);
@@ -74,8 +79,21 @@ export class Map extends MapBase {
     const player = this.gameObjectFactory.createPlayer(this.world, playerPosition, name);
 
     this.players[player.getLocalUUID()] = player;
+    if (name) {
+      this.playerSessionIdHash[name] = player.getLocalUUID();
+    }
 
     return player;
+  }
+
+  public UpdatePlayerInputFromServer(sessionId: string, input: Input): void {
+    const localUUID = this.playerSessionIdHash[sessionId];
+    const player: Player = this.players[localUUID];
+    player.setServerInput(input);
+  }
+
+  public SetCurrentPlayerLocalUUID(currentPlayerLocalUUID): void {
+    this.curPlayerLocalUUID = currentPlayerLocalUUID;
   }
 
   /**
@@ -110,7 +128,9 @@ export class Map extends MapBase {
     
     // Update graphics of all players
     for (let id in this.players) {
-      this.players[id].update();
+      const p = this.players[id];
+      p.handleServerInput();
+      p.update();
     }
 
     // Update graphics of all gameobjects

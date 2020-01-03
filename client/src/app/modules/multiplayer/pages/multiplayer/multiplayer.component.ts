@@ -8,7 +8,7 @@ import { GameObjectFactoryClient } from '@game/object/GameObjectFactoryClient';
 import { Controls } from '@game/core/Controls';
 import { Input } from 'gamecommon/game/core/InputTypes';
 import * as clipperLib from 'gamecommon/game/map/js-angusj-clipper'; // es6 / typescript
-import { Map } from 'gamecommon/game/map/Map';
+import { GameObject } from 'gamecommon/game/object/GameObject';
 
 @Component({
   selector: 'app-multiplayer',
@@ -37,7 +37,7 @@ export class MultiplayerComponent implements OnInit {
       client.joinOrCreate<World>('battle', { map }).then(room => {
         console.log('Created room successfully', room);
 
-        this.startGameLoop(room.state);
+        this.startGameLoop(room);
 
         room.state.gameObjects.onAdd = (gameObjectSchema, sessionId: string) => {
           // console.log("Creating gameobject", gameObjectSchema.objectType, gameObjectSchema);
@@ -46,10 +46,17 @@ export class MultiplayerComponent implements OnInit {
         room.state.players.onAdd = (player, sessionId: string) => {
           if (room.sessionId === player.name) {
             console.log("Created your player", player.name, player);
+            this.map.SetCurrentPlayerLocalUUID(player.localUUID);
           } else {
             console.log("Creating player", player.name, player);
           }
-          this.map.AddPlayer(player, sessionId);
+          const mapPlayer = this.map.AddPlayer(player, sessionId);
+
+          player.onChange = (changes) => {
+            console.log(player.name, player.x, player.y);
+            // mapPlayer.setPosition(player.getPosition());
+            mapPlayer.setPosition(player.x / GameObject.positionMultiplier, player.y / GameObject.positionMultiplier);
+          }
         };
 
         room.state.groundObjects.onAdd = (ground, sessionId: string) => {
@@ -78,12 +85,13 @@ export class MultiplayerComponent implements OnInit {
     });
   }
 
-  public startGameLoop(world: World): MapGraphics {
+  public startGameLoop(room: any): MapGraphics {
     let game: Main;
 
     this.input = new Input();
     this.controls = new Controls(this.input);
     const gameObjectFactory = new GameObjectFactoryClient();
+    const world: World = room.state;
     const map = this.map = MapGraphics.CreateFromWorld(world, gameObjectFactory);
 
     if (this.mapClipper) {
@@ -93,6 +101,7 @@ export class MultiplayerComponent implements OnInit {
     const loop = (time: number) => {
       window.requestAnimationFrame(loop);
       game.SimulationLoop(time);
+      room.send(this.input);
     };
 
     const init = (time: number) => {

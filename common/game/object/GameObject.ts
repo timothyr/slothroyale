@@ -4,6 +4,10 @@ import { LocalUUIDGenerator } from './LocalUUIDGenerator';
 import { GameObjectSchema } from '../schema/GameObject';
 
 export abstract class GameObject extends GameObjectSchema {
+
+  public static readonly positionMultiplier: number = 100000;
+
+
   protected sensorFixture: b2Fixture;
   protected body: b2Body;
 
@@ -51,7 +55,11 @@ export abstract class GameObject extends GameObjectSchema {
     return this.localUUID;
   }
 
-  update(): void {}
+  update(): void {
+    const pos = this.body.GetPosition();
+    this.x = pos.x * GameObject.positionMultiplier;
+    this.y = pos.y * GameObject.positionMultiplier;
+  }
 
   destroy(): void {
     this.destroyBody();
