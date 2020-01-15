@@ -30,10 +30,7 @@ export class Main {
   // --------- Simulation Loop ---------
 
   public SimulationLoop(time: number): void {
-    this.timeLast = this.timeLast || time;
-
-    let timeElapsed: number = time - this.timeLast;
-    this.timeLast = time;
+    let timeElapsed = time;
 
     if (timeElapsed > 1000) { timeElapsed = 1000; } // clamp
 

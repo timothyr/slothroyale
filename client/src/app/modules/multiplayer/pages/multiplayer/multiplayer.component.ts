@@ -94,18 +94,28 @@ export class MultiplayerComponent implements OnInit {
     const world: World = room.state;
     const map = this.map = MapGraphics.CreateFromWorld(world, gameObjectFactory);
 
+    let timeLast = 0;
+
     if (this.mapClipper) {
       map.setMapClipper(this.mapClipper);
     }
 
     const loop = (time: number) => {
+      timeLast = timeLast || time;
+      const timeElapsed: number = time - timeLast;
+      timeLast = time;
+
       window.requestAnimationFrame(loop);
-      game.SimulationLoop(time);
+      game.SimulationLoop(timeElapsed);
       room.send(this.input);
     };
 
     const init = (time: number) => {
-      game = new Main(time, this.input);
+      timeLast = timeLast || time;
+      const timeElapsed: number = time - timeLast;
+      timeLast = time;
+
+      game = new Main(timeElapsed, this.input);
       game.LoadMap(map);
       window.requestAnimationFrame(loop);
     };
