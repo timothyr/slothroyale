@@ -1,4 +1,4 @@
-import { Room, Client, serialize, SchemaSerializer } from "colyseus";
+import { Room, Client } from "colyseus";
 import { Main } from 'gamecommon/game/core/Main';
 import { Map } from "gamecommon/game/map/Map";
 import { GameObjectFactoryServer } from "gamecommon/game/object/GameObjectFactory";
@@ -51,16 +51,16 @@ export class GameRoom extends Room<World> {
     game.LoadMap(this.map);
 
     this.setSimulationInterval((deltaTime) => game.SimulationLoop(deltaTime), 16.6);
+
+    this.onMessage("action", (client: Client, input: Input) => {
+      // console.log("client msg", client.sessionId, input);
+      this.map.UpdatePlayerInputFromServer(client.sessionId, input);
+    })
   }
 
   onJoin (client: Client, options: any) {
     console.log("Creating player", client.sessionId);
     this.map.CreatePlayer(client.sessionId);
-  }
-
-  onMessage (client: Client, input: Input) {
-    // console.log("client msg", client.sessionId, input);
-    this.map.UpdatePlayerInputFromServer(client.sessionId, input);
   }
 
   onLeave (client: Client, consented: boolean) {

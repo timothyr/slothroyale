@@ -22,7 +22,7 @@
     "babel-polyfill": "^6.26.0",
     "@flyover/box2d": "github:timothyr/box2d.ts#master",
     "pixi.js": "^5.2.0",
-    "colyseus.js": "^0.11.7",
+    "colyseus.js": "^0.13.2",
     "gamecommon": "file:../common/",
     "mapgeneration": "file:../mapgeneration/",
     "rxjs": "~6.5.3",

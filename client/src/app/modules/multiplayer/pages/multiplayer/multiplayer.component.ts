@@ -107,7 +107,7 @@ export class MultiplayerComponent implements OnInit {
 
       window.requestAnimationFrame(loop);
       game.SimulationLoop(timeElapsed);
-      room.send(this.input);
+      room.send("action", this.input);
     };
 
     const init = (time: number) => {
