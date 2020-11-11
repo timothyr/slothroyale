@@ -5,7 +5,7 @@ import { type, ArraySchema, DataChange } from '@colyseus/schema';
 
 export class Ground extends GameObject {
 
-  public static readonly vertexMultiplier: number = 100000;
+  public static readonly vertexMultiplier: number = 10000000;
 
   @type([ "int32" ])
   vertices: ArraySchema<number>;
@@ -13,12 +13,10 @@ export class Ground extends GameObject {
   constructor(world: b2World, position: b2Vec2 = null, bodyParams: any, localUUID?: number) {
     super(world, ObjectType.GROUND, null, bodyParams, localUUID);
 
-    if (bodyParams) {
-      // Convert array in form [{x: 0, y: 1}, ...] into 1-d array of [x1, y1, x2, y2, ...]
-      const convertedVertices = bodyParams.polygon.flatMap((v: b2Vec2) => [v.x * Ground.vertexMultiplier, v.y * Ground.vertexMultiplier]);
+    // Convert array in form [{x: 0, y: 1}, ...] into 1-d array of [x1, y1, x2, y2, ...]
+    const convertedVertices = bodyParams.polygon.flatMap((v: b2Vec2) => [v.x * Ground.vertexMultiplier, v.y * Ground.vertexMultiplier]);
 
-      this.vertices = new ArraySchema<number>(...convertedVertices);
-    }
+    this.vertices = new ArraySchema<number>(...convertedVertices);
   }
 
   createBody(world: b2World, bodyParams: any): b2Body {

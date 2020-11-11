@@ -19,7 +19,7 @@ export class GroundGraphics extends Ground implements GameObjectGraphics {
     const vertices = groundSchema.vertices.map(v => v / Ground.vertexMultiplier);
 
     const polygon: b2Vec2[] = [];
-
+    
     // Convert 1-d array of [x1, y1, x2, y2, ...] into array of form [{x: 0, y: 1}, ...]
     while (vertices.length) {
       const tuple = vertices.splice(0, 2);
@@ -46,6 +46,15 @@ export class GroundGraphics extends Ground implements GameObjectGraphics {
     graphics.beginFill(0x3500FA, 1);
     graphics.drawPolygon(pixiVertices);
     graphics.endFill();
+
+    graphics.interactive = true;
+    graphics.on('mouseover', () => {
+      graphics.tint = 0xFF0000;
+    })
+
+    graphics.on('mouseout', () => {
+      graphics.tint = 0xFFFFFF;
+    })
 
     return graphics;
   }
