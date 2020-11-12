@@ -54,6 +54,7 @@ export class MultiplayerComponent implements OnInit {
 
           player.onChange = (changes) => {
             console.log(player.name, player.x, player.y);
+            console.log("changes", changes);
             // mapPlayer.setPosition(player.getPosition());
             mapPlayer.setPosition(player.x / GameObject.positionMultiplier, player.y / GameObject.positionMultiplier);
           }

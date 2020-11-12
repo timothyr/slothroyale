@@ -31,6 +31,8 @@ export class Player extends GameObject {
   public static readonly AIM_MOVEMENT_RATE = 2;
 
   @type("string") public name: string;
+  @type("boolean") public directionFacingRight: boolean;
+  @type("uint8") public aimAngle: number = 90;
 
   sensorFixture: b2Fixture;
   playerMovement: PlayerMovement;
@@ -38,8 +40,6 @@ export class Player extends GameObject {
   stopped = true;
 
   direction = PlayerDirection.RIGHT;
-
-  aimAngle = 90;
 
   serverInput: Input = null;
 
@@ -50,6 +50,7 @@ export class Player extends GameObject {
     }
     this.x = position.x;
     this.y = position.y;
+    this.directionFacingRight = true;
   }
 
   createBody(world: b2World): b2Body {
